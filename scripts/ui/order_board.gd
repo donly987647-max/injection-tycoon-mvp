@@ -60,6 +60,7 @@ func _row(order: OrderData) -> Control:
 	var locked := not GameState.can_interact()
 	var accept := Button.new()
 	accept.text = "Accept"
+	accept.custom_minimum_size = Vector2(0, 44)
 	accept.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	accept.disabled = locked
 	var oid := order.id
@@ -67,6 +68,7 @@ func _row(order: OrderData) -> Control:
 	actions.add_child(accept)
 	var reject := Button.new()
 	reject.text = "Reject"
+	reject.custom_minimum_size = Vector2(0, 44)
 	reject.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	reject.disabled = locked
 	reject.pressed.connect(func() -> void: _on_reject(oid))

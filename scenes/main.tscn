@@ -261,6 +261,7 @@ theme_override_font_sizes/font_size = 20
 
 [node name="HudCycle" type="Label" parent="HUD/HudMargin/HudV/HudTop"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Cycle 0"
@@ -276,6 +277,7 @@ theme_override_font_sizes/font_size = 16
 
 [node name="HudMat" type="Label" parent="HUD/HudMargin/HudV"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 text = "Resin 250"
 theme_override_font_sizes/font_size = 14
@@ -313,48 +315,56 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="BtnOrders" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Orders (O)"
+text = "Orders"
 
 [node name="BtnMolds" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Molds (M)"
+text = "Molds"
 
 [node name="BtnInject" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Inject (I)"
+text = "Inject"
 
 [node name="BtnStop" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Stop (S)"
+text = "Stop"
 
 [node name="Row2" type="HBoxContainer" parent="Bottom/BottomMargin/BottomV"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="BtnCycle" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Cycle (C)"
+text = "Cycle"
 
 [node name="BtnDeliver" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Deliver (D)"
+text = "Deliver"
 
 [node name="BtnBuy" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Buy resin (B)"
+text = "Buy resin"
 
 [node name="BtnReset" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Reset (R)"
+text = "Reset"
 
 [node name="OrderBoard" type="PanelContainer" parent="."]
 unique_name_in_owner = true
@@ -391,6 +401,7 @@ text = "Order Board"
 theme_override_font_sizes/font_size = 22
 
 [node name="Close" type="Button" parent="OrderBoard/Margin/VBox/Header"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Close"
 
@@ -444,6 +455,7 @@ text = "Mold Swap"
 theme_override_font_sizes/font_size = 22
 
 [node name="Close" type="Button" parent="MoldPanel/Margin/VBox/Header"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Close"
 

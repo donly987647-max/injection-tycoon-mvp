@@ -58,6 +58,7 @@ func _row(mold: MoldData) -> Control:
 	v.add_child(meta)
 	var btn := Button.new()
 	btn.text = "Swap in" if mold.owned else "Locked"
+	btn.custom_minimum_size = Vector2(0, 44)
 	var busy := not GameState.can_interact() or GameState.is_swapping()
 	btn.disabled = (not mold.owned) or busy
 	var mid := mold.id

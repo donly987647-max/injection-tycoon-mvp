@@ -103,15 +103,64 @@ Optional upgrade stubs (not required this pass): speed −0.5s ($200), cool +2 (
 - Linux: `~/.local/share/godot/app_userdata/Injection Tycoon MVP/`
 - Headless smoke in this environment: `$HOME/.local/share/godot/app_userdata/Injection Tycoon MVP/save_v1.json`
 
-## Android export (brief)
+## Android export
 
-1. In Godot: **Editor → Manage Export Templates** → download templates matching the editor version (4.7.2).
-2. **Project → Export → Add → Android**.
-3. Install Android SDK / NDK / JDK as [official docs](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_android.html).
-4. Use **Gradle Build** for a debug APK. Portrait is already set (`window/handheld/orientation=1` / portrait), renderer **mobile**, touch-from-mouse on for editor play.
-5. Set package name (e.g. `com.injectiontycoon.mvp`) and launcher icons before a store build.
+Debug APK path: `build/InjectionTycoonMVP-debug.apk` (~28 MiB after rebuild; gitignored under `build/`)  
+Package: `com.injectiontycoon.mvp` · portrait · `arm64-v8a` · non-Gradle template export.
 
-This MVP does not ship export templates or a signed keystore.
+### One-shot rebuild (this environment)
+
+```bash
+/workspace/injection-tycoon-mvp/scripts/export_android_debug.sh
+```
+
+Or manually:
+
+```bash
+export PATH="/workspace/tools/bin:$PATH"
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+export ANDROID_HOME=/workspace/tools/android-sdk
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+mkdir -p /workspace/injection-tycoon-mvp/build
+godot --headless --path /workspace/injection-tycoon-mvp \
+  --export-debug "Android" /workspace/injection-tycoon-mvp/build/InjectionTycoonMVP-debug.apk
+```
+
+### What was installed (box paths)
+
+| Component | Location |
+|-----------|----------|
+| Godot 4.7.2 | `/workspace/tools/bin/godot` |
+| OpenJDK 21 | `/usr/lib/jvm/java-21-openjdk-amd64` |
+| Android SDK | `/workspace/tools/android-sdk` (cmdline-tools, platform-tools, platforms;android-35, build-tools;35.0.0 + 35.0.1) |
+| Export templates | `~/.local/share/godot/export_templates/4.7.2.stable/` (`android_debug.apk`, `android_release.apk`) |
+| Debug keystore | `android/debug.keystore` (alias `androiddebugkey`, store/key pass `android`) |
+| Export preset | `export_presets.cfg` preset name **Android** |
+
+Editor settings (user account): `~/.config/godot/editor_settings-4.7.tres` points Java/Android SDK + debug keystore at the paths above.
+
+### Fresh machine setup
+
+1. **JDK** — OpenJDK 17+ (box uses 21). Set `JAVA_HOME`.
+2. **Android SDK** under `/workspace/tools/android-sdk` (or your path):
+   ```bash
+   # unpack Google commandlinetools into $ANDROID_HOME/cmdline-tools/latest
+   yes | sdkmanager --licenses
+   sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.1"
+   ```
+3. **Export templates** — download `Godot_v4.7.2-stable_export_templates.tpz` from the [4.7.2 release](https://github.com/godotengine/godot/releases/tag/4.7.2-stable), unzip into `~/.local/share/godot/export_templates/4.7.2.stable/` (must contain `android_debug.apk` and `version.txt` = `4.7.2.stable`).
+4. **Editor Settings → Export → Android** — set Java SDK Path + Android SDK Path; debug keystore as above (or leave blank to use editor defaults).
+5. Open the project once so assets import, then run the rebuild script / `--export-debug`.
+
+Portrait is set in `project.godot` (`window/handheld/orientation=1`). Renderer is **mobile**. NDK/CMake are **not** required for this non-Gradle APK path; they are needed only if you enable **Gradle Build** / custom Android builds / AAB for Play Store.
+
+### Sideload
+
+```bash
+adb install -r build/InjectionTycoonMVP-debug.apk
+```
+
+Release / Play Store needs a non-debug keystore, usually Gradle + AAB — out of scope for this MVP debug path.
 
 ## Layout
 

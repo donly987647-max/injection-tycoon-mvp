@@ -3,3 +3,6 @@ export/
 *.apk
 *.aab
 *.translation
+
+# Android export artifacts
+build/

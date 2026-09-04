@@ -1,0 +1,38 @@
+; Engine configuration file.
+; Godot 4.x Injection Tycoon MVP — mobile-oriented
+
+config_version=5
+
+[application]
+
+config/name="Injection Tycoon MVP"
+config/description="Plastic injection factory tycoon — mobile MVP core loop"
+config/version="0.1.0"
+run/main_scene="res://scenes/main.tscn"
+config/auto_accept_quit=false
+config/quit_on_go_back=true
+config/features=PackedStringArray("4.3", "Mobile")
+config/icon="res://icon.svg"
+
+[autoload]
+
+GameState="*res://scripts/autoload/game_state.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/size/window_width_override=405
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true

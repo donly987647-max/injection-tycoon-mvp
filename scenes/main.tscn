@@ -1,0 +1,504 @@
+[gd_scene load_steps=6 format=3 uid="uid://b1injtycoonmain"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/ui/order_board.gd" id="2_board"]
+[ext_resource type="Script" path="res://scripts/ui/mold_panel.gd" id="3_mold"]
+[ext_resource type="Script" path="res://scripts/ui/sheet.gd" id="4_sheet"]
+[ext_resource type="Script" path="res://scripts/ui/toast.gd" id="5_toast"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.09, 0.12, 0.16, 1)
+
+[node name="Factory" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 118.0
+offset_bottom = -210.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Floor" type="ColorRect" parent="Factory"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -40.0
+offset_right = 220.0
+offset_bottom = 180.0
+color = Color(0.22, 0.26, 0.22, 1)
+rotation = -0.4
+
+[node name="Hopper" type="ColorRect" parent="Factory"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -170.0
+offset_right = -70.0
+offset_bottom = -70.0
+color = Color(0.25, 0.55, 0.35, 1)
+
+[node name="HopperLabel" type="Label" parent="Factory/Hopper"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "RESIN"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Machine" type="ColorRect" parent="Factory"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -70.0
+offset_top = -90.0
+offset_right = 90.0
+offset_bottom = 70.0
+color = Color(0.28, 0.34, 0.42, 1)
+
+[node name="MachineLabel" type="Label" parent="Factory/Machine"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 8.0
+text = "INJECTION
+LINE 1"
+horizontal_alignment = 1
+vertical_alignment = 0
+
+[node name="MoldBlock" type="ColorRect" parent="Factory"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -30.0
+offset_top = -20.0
+offset_right = 50.0
+offset_bottom = 36.0
+color = Color(0.55, 0.75, 0.95, 1)
+
+[node name="MoldLabel" type="Label" parent="Factory/MoldBlock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "MOLD"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="OutputBin" type="ColorRect" parent="Factory"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 110.0
+offset_top = 20.0
+offset_right = 200.0
+offset_bottom = 110.0
+color = Color(0.18, 0.22, 0.28, 1)
+
+[node name="BinLabel" type="Label" parent="Factory/OutputBin"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "BIN"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LineStatus" type="Label" parent="Factory"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -72.0
+offset_right = -16.0
+offset_bottom = -44.0
+text = "Idle"
+horizontal_alignment = 1
+
+[node name="HeatBar" type="ProgressBar" parent="Factory"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = -36.0
+offset_right = -40.0
+offset_bottom = -12.0
+max_value = 100.0
+show_percentage = false
+
+[node name="HUD" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 118.0
+grow_horizontal = 2
+
+[node name="HudMargin" type="MarginContainer" parent="HUD"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="HudV" type="VBoxContainer" parent="HUD/HudMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HudTop" type="HBoxContainer" parent="HUD/HudMargin/HudV"]
+layout_mode = 2
+
+[node name="HudBalance" type="Label" parent="HUD/HudMargin/HudV/HudTop"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "$1000"
+theme_override_font_sizes/font_size = 26
+
+[node name="HudDefect" type="Label" parent="HUD/HudMargin/HudV/HudTop"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Defect  8%"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="HudCycle" type="Label" parent="HUD/HudMargin/HudV/HudTop"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cycle 0"
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 18
+
+[node name="HudOrder" type="Label" parent="HUD/HudMargin/HudV"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "No active order"
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 16
+
+[node name="HudMat" type="Label" parent="HUD/HudMargin/HudV"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Resin 250"
+theme_override_font_sizes/font_size = 14
+
+[node name="Bottom" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -210.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="BottomMargin" type="MarginContainer" parent="Bottom"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="BottomV" type="VBoxContainer" parent="Bottom/BottomMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HelpLabel" type="Label" parent="Bottom/BottomMargin/BottomV"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Open Orders → Accept → Swap mold → Inject → Cycle → Deliver"
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 13
+
+[node name="Row1" type="HBoxContainer" parent="Bottom/BottomMargin/BottomV"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BtnOrders" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Orders (O)"
+
+[node name="BtnMolds" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Molds (M)"
+
+[node name="BtnInject" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Inject (I)"
+
+[node name="BtnStop" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Stop (S)"
+
+[node name="Row2" type="HBoxContainer" parent="Bottom/BottomMargin/BottomV"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BtnCycle" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cycle (C)"
+
+[node name="BtnDeliver" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Deliver (D)"
+
+[node name="BtnBuy" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Buy resin (B)"
+
+[node name="BtnReset" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Reset (R)"
+
+[node name="OrderBoard" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 130.0
+offset_right = -16.0
+offset_bottom = -220.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_board")
+
+[node name="Margin" type="MarginContainer" parent="OrderBoard"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="OrderBoard/Margin"]
+layout_mode = 2
+
+[node name="Header" type="HBoxContainer" parent="OrderBoard/Margin/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="OrderBoard/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Order Board"
+theme_override_font_sizes/font_size = 22
+
+[node name="Close" type="Button" parent="OrderBoard/Margin/VBox/Header"]
+layout_mode = 2
+text = "Close"
+
+[node name="Hint" type="Label" parent="OrderBoard/Margin/VBox"]
+layout_mode = 2
+text = "item · qty · deadline · reward · margin_tag (bulk|special)
+Near-deadline (≤1 cycle) cannot be accepted."
+autowrap_mode = 3
+
+[node name="Scroll" type="ScrollContainer" parent="OrderBoard/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="OrderBoard/Margin/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="MoldPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 130.0
+offset_right = -16.0
+offset_bottom = -220.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_mold")
+
+[node name="Margin" type="MarginContainer" parent="MoldPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="MoldPanel/Margin"]
+layout_mode = 2
+
+[node name="Header" type="HBoxContainer" parent="MoldPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MoldPanel/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Mold Swap"
+theme_override_font_sizes/font_size = 22
+
+[node name="Close" type="Button" parent="MoldPanel/Margin/VBox/Header"]
+layout_mode = 2
+text = "Close"
+
+[node name="Scroll" type="ScrollContainer" parent="MoldPanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="MoldPanel/Margin/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Sheet" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+script = ExtResource("4_sheet")
+
+[node name="Center" type="CenterContainer" parent="Sheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="Sheet/Center"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Sheet/Center/Card"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Pad" type="MarginContainer" parent="Sheet/Center/Card/VBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 4
+
+[node name="Title" type="Label" parent="Sheet/Center/Card/VBox"]
+layout_mode = 2
+text = "Notice"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+
+[node name="Body" type="Label" parent="Sheet/Center/Card/VBox"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+horizontal_alignment = 1
+
+[node name="Ok" type="Button" parent="Sheet/Center/Card/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "OK"
+
+[node name="Toast" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 126.0
+offset_bottom = 190.0
+grow_horizontal = 2
+mouse_filter = 2
+script = ExtResource("5_toast")
+
+[node name="Panel" type="PanelContainer" parent="Toast"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -28.0
+offset_right = 280.0
+offset_bottom = 28.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Toast/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="Label" type="Label" parent="Toast/Panel/Margin"]
+layout_mode = 2
+text = "toast"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[connection signal="pressed" from="Bottom/BottomMargin/BottomV/Row1/BtnOrders" to="." method="_on_orders"]
+[connection signal="pressed" from="Bottom/BottomMargin/BottomV/Row1/BtnMolds" to="." method="_on_molds"]
+[connection signal="pressed" from="Bottom/BottomMargin/BottomV/Row1/BtnInject" to="." method="_on_inject"]
+[connection signal="pressed" from="Bottom/BottomMargin/BottomV/Row1/BtnStop" to="." method="_on_stop"]
+[connection signal="pressed" from="Bottom/BottomMargin/BottomV/Row2/BtnCycle" to="." method="_on_cycle"]
+[connection signal="pressed" from="Bottom/BottomMargin/BottomV/Row2/BtnDeliver" to="." method="_on_deliver"]
+[connection signal="pressed" from="Bottom/BottomMargin/BottomV/Row2/BtnBuy" to="." method="_on_buy"]
+[connection signal="pressed" from="Bottom/BottomMargin/BottomV/Row2/BtnReset" to="." method="_on_reset"]

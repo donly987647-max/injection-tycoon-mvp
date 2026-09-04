@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+
+  <!-- funnel top -->
+  <polygon points="128,36 210,92 128,108 46,92" fill="#4C9E68" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="46,92 128,108 128,132 70,148" fill="#2E6A44" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="210,92 128,108 128,132 186,148" fill="#3D8C58" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+  <!-- chute -->
+  
+  <polygon points="100,148 128,157.0 128,199.0 100,190" fill="#2E6A44" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="156,148 128,157.0 128,199.0 156,190" fill="#3D8C58" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="128,139.0 156,148 128,157.0 100,148" fill="#4C9E68" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- resin pebbles -->
+  <circle cx="118" cy="78" r="7" fill="#7ED99A" stroke="#1A2229" stroke-width="1.8"/>
+  <circle cx="138" cy="86" r="6" fill="#A6E8B8" stroke="#1A2229" stroke-width="1.8"/>
+  <circle cx="128" cy="70" r="5" fill="#5DD4A0" stroke="#1A2229" stroke-width="1.8"/>
+
+</svg>

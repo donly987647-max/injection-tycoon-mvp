@@ -8,6 +8,7 @@ signal settlement_requested(result: Dictionary)
 signal cycle_advanced(cycle: int)
 
 const SAVE_PATH := "user://save_v1.json"
+const SAVE_TEMP := "user://save_v1.json.tmp"
 const SAVE_VERSION := 1
 const MAX_ORDER_SLOTS := 1
 const NEAR_DEADLINE_CYCLES := 1
@@ -36,6 +37,11 @@ var active_order: OrderData = null
 var last_settlement: Dictionary = {}
 var _order_seq: int = 1
 var rng := RandomNumberGenerator.new()
+## Mash / re-entrancy guards (UI + GameState).
+var sheet_open: bool = false
+var _accepting: bool = false
+var _settling: bool = false
+var _swap_starting: bool = false
 
 func _ready() -> void:
 	rng.randomize()
@@ -174,6 +180,22 @@ func get_mold_for_item(item: String) -> MoldData:
 func slot_free() -> bool:
 	return active_order == null
 
+func can_interact() -> bool:
+	## False while confirm sheet is up or a settle/accept/swap start is in flight.
+	return not sheet_open and not _settling and not _accepting and not _swap_starting
+
+func is_settling() -> bool:
+	return _settling
+
+func is_swapping() -> bool:
+	return line.status == LineState.Status.SWAPPING or _swap_starting
+
+func _clear_busy() -> void:
+	_accepting = false
+	_settling = false
+	_swap_starting = false
+	sheet_open = false
+
 func current_mold() -> MoldData:
 	if line.current_mold_id.is_empty():
 		return null
@@ -198,6 +220,10 @@ func hud_defect_text() -> String:
 # ---------------------------------------------------------------------------
 
 func try_accept_order(order_id: String) -> Dictionary:
+	if _accepting or _settling:
+		return {"ok": false, "sheet": false, "message": "Busy."}
+	if sheet_open:
+		return {"ok": false, "sheet": false, "message": "Close the sheet first."}
 	var order := _find_board_order(order_id)
 	if order == null:
 		return _fail("Order not found on board.")
@@ -205,12 +231,13 @@ func try_accept_order(order_id: String) -> Dictionary:
 		return _fail("Order slot full. Finish or settle the current job first.")
 	if order.is_near_deadline(cycle):
 		return _fail("Too close to deadline (≤ %d cycle). Reject or skip." % NEAR_DEADLINE_CYCLES)
+	_accepting = true
 	active_order = order
 	active_order.accepted = true
 	_remove_board(order_id)
 	_refill_board()
 	_changed()
-	return _ok_sheet("Order accepted", {
+	var out := _ok_sheet("Order accepted", {
 		"title": "Order Accepted",
 		"body": "Item: %s\nQty: %d good units\nDeadline: cycle %d (%d left)\nReward: $%d  Penalty: $%d\nTag: %s\n\nSwap to the matching mold, then inject." % [
 			order.item, order.quantity, order.deadline, order.remaining_cycles(cycle),
@@ -218,8 +245,12 @@ func try_accept_order(order_id: String) -> Dictionary:
 		],
 		"kind": "order_accept",
 	})
+	_accepting = false
+	return out
 
 func try_reject_order(order_id: String) -> Dictionary:
+	if not can_interact():
+		return {"ok": false, "sheet": false, "message": "Busy."}
 	var order := _find_board_order(order_id)
 	if order == null:
 		return _fail("Order not found on board.")
@@ -250,6 +281,10 @@ func _find_board_order(order_id: String) -> OrderData:
 # ---------------------------------------------------------------------------
 
 func try_start_swap(mold_id: String) -> Dictionary:
+	if _swap_starting or _settling:
+		return {"ok": false, "sheet": false, "message": "Busy."}
+	if sheet_open:
+		return {"ok": false, "sheet": false, "message": "Close the sheet first."}
 	var mold := get_mold(mold_id)
 	if mold == null:
 		return _fail("Unknown mold.")
@@ -262,11 +297,13 @@ func try_start_swap(mold_id: String) -> Dictionary:
 	if line.current_mold_id == mold_id:
 		toast("That mold is already installed.", "info")
 		return {"ok": true, "sheet": false, "message": "Already installed."}
+	_swap_starting = true
 	line.status = LineState.Status.SWAPPING
 	line.target_mold_id = mold_id
 	line.swap_remaining = mold.swap_time
 	_changed()
 	toast("Swapping to %s (%d cycle)." % [mold.name, mold.swap_time], "info")
+	_swap_starting = false
 	return {"ok": true, "sheet": false, "message": "Swap started."}
 
 func _complete_swap() -> void:
@@ -401,10 +438,15 @@ func _fail_stop(msg: String) -> void:
 # ---------------------------------------------------------------------------
 
 func try_deliver() -> Dictionary:
+	if _settling:
+		return {"ok": false, "sheet": false, "message": "Already settling."}
+	if sheet_open:
+		return {"ok": false, "sheet": false, "message": "Close the sheet first."}
 	if active_order == null:
 		return _fail("No active order to deliver.")
 	if line.is_running() or line.status == LineState.Status.SWAPPING:
 		return _fail("Stop the line before delivering.")
+	_settling = true
 	var order := active_order
 	var on_time := cycle <= order.deadline
 	var qty_ok := order.good_units_produced >= order.quantity
@@ -458,6 +500,7 @@ func try_deliver() -> Dictionary:
 	active_order = null
 	save_game()
 	settlement_requested.emit(result)
+	_settling = false
 	_changed()
 	return {"ok": settle_ok, "sheet": true, "result": result}
 
@@ -492,15 +535,36 @@ func save_game() -> bool:
 		"board_orders": board_orders.map(func(o: OrderData) -> Dictionary: return o.to_dict()),
 		"active_order": active_order.to_dict() if active_order else {},
 	}
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	# Atomic-ish: write temp then rename over the live save so a kill mid-write
+	# cannot leave a truncated user://save_v1.json.
+	var f := FileAccess.open(SAVE_TEMP, FileAccess.WRITE)
 	if f == null:
 		push_error("Save failed: %s" % FileAccess.get_open_error())
 		return false
 	f.store_string(JSON.stringify(data, "\t"))
 	f.close()
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(SAVE_PATH)
+	var err := DirAccess.rename_absolute(SAVE_TEMP, SAVE_PATH)
+	if err != OK:
+		# Fallback: copy-over if rename unavailable on this platform.
+		var src := FileAccess.open(SAVE_TEMP, FileAccess.READ)
+		if src == null:
+			push_error("Save rename failed (%s) and temp unreadable." % error_string(err))
+			return false
+		var dst := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		if dst == null:
+			src.close()
+			push_error("Save fallback write failed: %s" % FileAccess.get_open_error())
+			return false
+		dst.store_string(src.get_as_text())
+		src.close()
+		dst.close()
+		DirAccess.remove_absolute(SAVE_TEMP)
 	return true
 
 func load_game() -> bool:
+	_clear_busy()
 	if not FileAccess.file_exists(SAVE_PATH):
 		return false
 	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
@@ -536,6 +600,27 @@ func load_game() -> bool:
 		_refill_board()
 	return true
 
+## Simulate app restart after force-quit: wipe RAM, then load disk (or new game).
+func reload_from_save() -> bool:
+	_clear_busy()
+	# Wipe in-memory without touching the save file.
+	cycle = 0
+	balance = STARTING_BALANCE
+	materials = STARTING_MATERIALS
+	defect_rate = STARTING_DEFECT_RATE
+	line = LineState.new()
+	molds.clear()
+	board_orders.clear()
+	active_order = null
+	last_settlement = {}
+	_order_seq = 1
+	if load_game():
+		_changed()
+		return true
+	_new_game()
+	_changed()
+	return false
+
 func debug_push_order(d: Dictionary) -> OrderData:
 	var o := OrderData.from_dict(d)
 	if o.id.is_empty():
@@ -546,8 +631,11 @@ func debug_push_order(d: Dictionary) -> OrderData:
 	return o
 
 func reset_game() -> void:
+	_clear_busy()
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
+	if FileAccess.file_exists(SAVE_TEMP):
+		DirAccess.remove_absolute(SAVE_TEMP)
 	_new_game()
 	save_game()
 	_changed()

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+
+  <!-- base -->
+  
+  <polygon points="50,168 128,190.0 128,218.0 50,196" fill="#3A4656" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="206,168 128,190.0 128,218.0 206,196" fill="#47566B" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="128,146.0 206,168 128,190.0 50,168" fill="#5A6B80" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- column left -->
+  
+  <polygon points="68,110 86,118.0 86,180.0 68,172" fill="#3A4656" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="104,110 86,118.0 86,180.0 104,172" fill="#47566B" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="86,102.0 104,110 86,118.0 68,110" fill="#6A7B90" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- column right -->
+  
+  <polygon points="152,110 170,118.0 170,180.0 152,172" fill="#3A4656" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="188,110 170,118.0 170,180.0 188,172" fill="#47566B" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="170,102.0 188,110 170,118.0 152,110" fill="#6A7B90" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- platen / head -->
+  
+  <polygon points="58,78 128,96.0 128,118.0 58,100" fill="#3A4656" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="198,78 128,96.0 128,118.0 198,100" fill="#526274" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="128,60.0 198,78 128,96.0 58,78" fill="#7A8BA0" stroke="#1A2229" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- nozzle -->
+  <rect x="118" y="118" width="20" height="28" rx="3" fill="#2A3340" stroke="#1A2229" stroke-width="2.5"/>
+  <rect x="122" y="144" width="12" height="10" rx="2" fill="#4A9FD4" stroke="#1A2229" stroke-width="2"/>
+  <!-- status lamp -->
+  <circle cx="128" cy="70" r="7" fill="#F4F1EA" stroke="#1A2229" stroke-width="2.5"/>
+  <circle cx="128" cy="70" r="4" fill="#5DD4A0"/>
+
+</svg>

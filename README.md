@@ -68,11 +68,29 @@ Portrait 720×1280, mouse emulates touch. Keyboard:
 
 1. **Order** — accept if the single slot is free and remaining cycles **> 1**. Fail toast if slot full, or if the job is near-deadline (`deadline - cycle <= 1`). Rejecting a near-deadline job is also a fail toast.
 2. **Mold swap** — starts if the line is idle and the mold is owned; completes after `swap_time` cycles (success sheet). Fail if the line is running or the mold is not owned (Toy Brick is locked).
-3. **Injection** — each cycle produces 10 shots at `defect_rate` (HUD). Fail-stop (toast) on **overheat** or **material shortage**.
+3. **Injection** — each cycle is **1 shot → 1 unit** (material 1/shot) at `defect_rate` (default **12%**, conceptual range 5%–35%). Fail-stop (toast) on **overheat** (`max_heat` **80**, cool **−5**/idle cycle) or **material shortage**.
 4. **Delivery** — success if `good_units >= order.qty` **and** `cycle <= deadline`. Else fail toast.
-5. **Settlement** — success credits `reward`. Fail applies `penalty` if late, short, or **excess defects** (> 15% of shots). Autosave on settle.
+5. **Settlement** — success credits `reward`. Late / fail applies **−40% of reward** (`penalty`). Shortage = no delivery / fail. Excess defects (> 15%) also fail. Autosave on settle.
 
 HUD always shows **order summary, defect rate, balance** (plus cycle and resin).
+
+## MVP balance (Game Design sheet)
+
+Locked numbers used by this prototype (cycle ≈ 1s of design time for deadlines/swap):
+
+| Item | Value |
+|------|-------|
+| Shot / cycle | 1 unit, material 1 per shot |
+| Overheat | `line.max_heat = 80` |
+| Cooling | −5 heat per idle/cooling cycle |
+| Mold swap | **8** cycles (not while running) |
+| Defect rate | start **0.12** (usable 5%–35%; single rate until pressure/temp) |
+| Starting balance | **500** |
+| Orders (fixed board) | tutorial 20 / lead 120 / $150 / pen 0; bulk 100 / 180 / $300 / 40%; special 30 / 90 / $500 / 40% |
+| Late settlement | **−40%** of reward |
+| Shortage | no delivery / fail |
+
+Optional upgrade stubs (not required this pass): speed −0.5s ($200), cool +2 ($150), mold slot +1 ($400).
 
 ## Save
 

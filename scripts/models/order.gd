@@ -10,7 +10,7 @@ var quantity: int = 0
 var deadline: int = 0  ## absolute cycle number
 var reward: int = 0
 var margin_tag: int = MarginTag.BULK
-var penalty: int = 0
+var penalty: int = 0  ## late = 40% of reward by default; tutorial may be 0
 var accepted: bool = false
 var delivered: bool = false
 var good_units_produced: int = 0
@@ -28,7 +28,9 @@ static func from_dict(d: Dictionary) -> OrderData:
 		o.margin_tag = tag
 	else:
 		o.margin_tag = MarginTag.SPECIAL if str(tag) == "special" else MarginTag.BULK
-	o.penalty = int(d.get("penalty", maxi(o.reward / 2, 50)))
+	# Default late penalty = 40% of reward (MVP sheet), not half.
+	var default_pen := int(round(float(o.reward) * 0.4))
+	o.penalty = int(d.get("penalty", default_pen))
 	o.accepted = bool(d.get("accepted", false))
 	o.delivered = bool(d.get("delivered", false))
 	o.good_units_produced = int(d.get("good_units_produced", 0))

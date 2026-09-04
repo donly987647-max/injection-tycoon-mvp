@@ -1,5 +1,17 @@
 extends Control
-## Factory view + HUD + panels. Desktop-playable ColorRect placeholders.
+## Factory view + HUD + panels. Art Bible palette + SVG placeholders.
+## Colors: docs/ART_BIBLE.md §3. Sprites: res://assets/art/
+
+const COL_IDLE := Color(0.278, 0.337, 0.420)   # machine_idle #47566B
+const COL_RUN := Color(0.290, 0.624, 0.831)    # machine_run  #4A9FD4
+const COL_SWAP := Color(0.878, 0.659, 0.227)   # machine_swap #E0A83A
+const COL_COOL := Color(0.769, 0.361, 0.361)   # machine_cool #C45C5C
+const COL_MOLD_CAP := Color(0.494, 0.769, 0.941)   # #7EC4F0
+const COL_MOLD_CASE := Color(0.365, 0.831, 0.627)  # #5DD4A0
+const COL_MOLD_TOY := Color(0.878, 0.545, 0.753)   # #E08BC0
+const COL_HOPPER := Color(0.239, 0.549, 0.345)     # #3D8C58
+const COL_BIN_EMPTY := Color(0.165, 0.200, 0.251)  # #2A3340
+const COL_BIN_GOOD := Color(0.227, 0.494, 0.769)   # #3A7EC4
 
 @onready var hud_order: Label = %HudOrder
 @onready var hud_defect: Label = %HudDefect
@@ -65,26 +77,26 @@ func _refresh() -> void:
 	heat_bar.value = GameState.line.heat
 	match GameState.line.status:
 		LineState.Status.RUNNING:
-			machine.color = Color(0.35, 0.62, 0.85)
+			machine.color = COL_RUN
 		LineState.Status.SWAPPING:
-			machine.color = Color(0.85, 0.68, 0.28)
+			machine.color = COL_SWAP
 		LineState.Status.COOLING:
-			machine.color = Color(0.55, 0.35, 0.35)
+			machine.color = COL_COOL
 		_:
-			machine.color = Color(0.28, 0.34, 0.42)
+			machine.color = COL_IDLE
 	mold_block.visible = mold != null
 	if mold:
-		mold_block.color = Color(0.55, 0.75, 0.95) if mold.id == "mold_cap" else (
-			Color(0.45, 0.85, 0.65) if mold.id == "mold_case" else Color(0.85, 0.55, 0.75)
+		mold_block.color = COL_MOLD_CAP if mold.id == "mold_cap" else (
+			COL_MOLD_CASE if mold.id == "mold_case" else COL_MOLD_TOY
 		)
 	var mat_t := clampf(float(GameState.materials) / 250.0, 0.15, 1.0)
-	hopper.color = Color(0.25, 0.55, 0.35, mat_t)
+	hopper.color = Color(COL_HOPPER, mat_t)
 	if GameState.active_order:
 		var p := clampf(float(GameState.active_order.good_units_produced) / float(maxi(GameState.active_order.quantity, 1)), 0.2, 1.0)
-		output_bin.color = Color(0.2, 0.45, 0.75, p)
+		output_bin.color = Color(COL_BIN_GOOD, p)
 		help_label.text = _hint_for_order()
 	else:
-		output_bin.color = Color(0.18, 0.22, 0.28)
+		output_bin.color = COL_BIN_EMPTY
 		help_label.text = "Open Orders (O) → Accept → Molds (M) → Swap → Inject (I) → Cycle (C/N) → Deliver (D)"
 
 func _hint_for_order() -> String:
@@ -106,20 +118,30 @@ func _pulse_machine() -> void:
 	tw.tween_property(machine, "scale", Vector2.ONE, 0.12)
 
 func _on_orders() -> void:
+	if GameState.sheet_open or GameState.is_settling():
+		return
 	mold_panel.visible = false
 	order_board.open()
 
 func _on_molds() -> void:
+	if GameState.sheet_open or GameState.is_settling():
+		return
 	order_board.visible = false
 	mold_panel.open()
 
 func _on_inject() -> void:
+	if GameState.sheet_open or GameState.is_settling():
+		return
 	GameState.try_start_injection()
 
 func _on_stop() -> void:
+	if GameState.sheet_open or GameState.is_settling():
+		return
 	GameState.try_stop_injection()
 
 func _on_deliver() -> void:
+	if GameState.sheet_open or GameState.is_settling():
+		return
 	GameState.try_deliver()
 
 func _on_cycle() -> void:

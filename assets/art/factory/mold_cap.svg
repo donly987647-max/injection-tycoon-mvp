@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+
+  
+ <polygon points="24,52 64,64.0 64,100.0 24,88" fill="#4A8BB0" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+ <polygon points="104,52 64,64.0 64,100.0 104,88" fill="#7EC4F0" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+ <polygon points="64,40.0 104,52 64,64.0 24,52" fill="#A8DBF8" stroke="#1A2229" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <text x="64" y="78" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="16" font-weight="700" fill="#1A2229">C</text>
+
+</svg>

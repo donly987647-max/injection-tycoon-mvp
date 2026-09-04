@@ -10,6 +10,8 @@ func _ready() -> void:
 	GameState.state_changed.connect(refresh)
 
 func open() -> void:
+	if GameState.sheet_open or GameState.is_settling():
+		return
 	refresh()
 	visible = true
 
@@ -56,7 +58,14 @@ func _row(mold: MoldData) -> Control:
 	v.add_child(meta)
 	var btn := Button.new()
 	btn.text = "Swap in" if mold.owned else "Locked"
-	btn.disabled = not mold.owned
-	btn.pressed.connect(func() -> void: GameState.try_start_swap(mold.id))
+	var busy := not GameState.can_interact() or GameState.is_swapping()
+	btn.disabled = (not mold.owned) or busy
+	var mid := mold.id
+	btn.pressed.connect(func() -> void: _on_swap(mid))
 	v.add_child(btn)
 	return box
+
+func _on_swap(mold_id: String) -> void:
+	if not GameState.can_interact() or GameState.is_swapping():
+		return
+	GameState.try_start_swap(mold_id)

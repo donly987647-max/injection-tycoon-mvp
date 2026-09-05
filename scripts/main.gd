@@ -12,6 +12,8 @@ const COL_MOLD_TOY := Color(0.878, 0.545, 0.753)   # #E08BC0
 const COL_HOPPER := Color(0.239, 0.549, 0.345)     # #3D8C58
 const COL_BIN_EMPTY := Color(0.165, 0.200, 0.251)  # #2A3340
 const COL_BIN_GOOD := Color(0.227, 0.494, 0.769)   # #3A7EC4
+const COL_URGENT := Color(0.886, 0.357, 0.290)     # #E25B4A
+const COL_HEAT_DANGER := Color(0.886, 0.357, 0.290)
 
 ## Base layout insets before device Safe Area (matches scene defaults).
 const HUD_BASE_H := 118.0
@@ -39,6 +41,10 @@ const TOAST_BOTTOM_BASE := 190.0
 @onready var mold_panel: MoldSwapPanel = %MoldPanel
 @onready var help_label: Label = %HelpLabel
 @onready var toast: Control = %Toast
+@onready var onboarding_guide: Control = %OnboardingGuide
+@onready var guide_label: Label = %GuideLabel
+@onready var guide_skip: Button = %GuideSkip
+@onready var info_vfx: InfoVfx = %InfoVfx
 
 func _ready() -> void:
 	# Mobile HUD lock: only order / defect / balance on the strip.
@@ -46,11 +52,18 @@ func _ready() -> void:
 	hud_mat.visible = false
 	GameState.state_changed.connect(_refresh)
 	GameState.cycle_advanced.connect(func(_c: int) -> void: _pulse_machine())
+	GameState.shot_resolved.connect(_on_shot_resolved)
+	GameState.overheat_triggered.connect(_on_overheat)
+	GameState.settlement_requested.connect(_on_settlement_vfx)
 	resized.connect(_on_resized)
 	machine.resized.connect(_center_machine_pivot)
 	get_viewport().size_changed.connect(_apply_safe_area)
+	guide_skip.pressed.connect(_on_guide_skip)
+	info_vfx.setup(machine, mold_block, output_bin, hud_balance)
 	_apply_safe_area()
 	_center_machine_pivot()
+	# First-run: auto-accept tutorial if no prior delivery success.
+	GameState.ensure_tutorial_onboarding()
 	_refresh()
 
 func _on_resized() -> void:
@@ -98,6 +111,10 @@ func _apply_safe_area() -> void:
 	toast.offset_top = top + TOAST_TOP_BASE
 	toast.offset_bottom = top + TOAST_BOTTOM_BASE
 
+	if onboarding_guide:
+		onboarding_guide.offset_left = 12.0 + left
+		onboarding_guide.offset_right = -(12.0 + right)
+
 ## Returns Vector4(left, top, right, bottom) in viewport coordinates.
 func _safe_area_margins() -> Vector4:
 	var safe := DisplayServer.get_display_safe_area()
@@ -132,6 +149,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				GameState.buy_materials()
 			KEY_R:
 				GameState.reset_game()
+				GameState.ensure_tutorial_onboarding()
 			KEY_C, KEY_N:
 				GameState.advance_cycle()
 			_:
@@ -140,6 +158,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _refresh() -> void:
 	hud_order.text = GameState.order_summary()
+	if GameState.is_active_deadline_urgent():
+		hud_order.add_theme_color_override("font_color", COL_URGENT)
+	else:
+		hud_order.remove_theme_color_override("font_color")
 	hud_defect.text = "불량  %s" % GameState.hud_defect_text()
 	hud_balance.text = "$%d" % GameState.balance
 	# Cycle / Resin stay off the mobile HUD strip (nodes remain for debug if unhidden).
@@ -147,11 +169,16 @@ func _refresh() -> void:
 	hud_mat.text = "원료 %d" % GameState.materials
 	var mold := GameState.current_mold()
 	var mold_name := mold.name if mold else "금형 없음"
-	line_status.text = "%s  |  %s  |  열 %.0f/%.0f" % [
-		GameState.line.status_str(), mold_name, GameState.line.heat, GameState.line.max_heat,
+	var status_extra := ""
+	if GameState.line.status == LineState.Status.SWAPPING:
+		status_extra = " (%d 사이클)" % GameState.line.swap_remaining
+	line_status.text = "%s%s  |  %s  |  열 %.0f/%.0f" % [
+		GameState.line.status_str(), status_extra, mold_name,
+		GameState.line.heat, GameState.line.max_heat,
 	]
 	heat_bar.max_value = GameState.line.max_heat
 	heat_bar.value = GameState.line.heat
+	_style_heat_bar()
 	match GameState.line.status:
 		LineState.Status.RUNNING:
 			machine.color = COL_RUN
@@ -175,19 +202,60 @@ func _refresh() -> void:
 	else:
 		output_bin.color = COL_BIN_EMPTY
 		help_label.text = "주문 열기 → 수주 → 금형 → 교체 → 사출 → 사이클 → 납품"
+	_update_onboarding_guide()
+
+func _style_heat_bar() -> void:
+	var sb := StyleBoxFlat.new()
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_left = 4
+	sb.corner_radius_bottom_right = 4
+	if GameState.line.heat >= GameState.heat_warn_threshold():
+		sb.bg_color = COL_HEAT_DANGER
+	elif GameState.line.heat >= GameState.line.max_heat * 0.5:
+		sb.bg_color = Color(0.878, 0.659, 0.227)  # swap/amber
+	else:
+		sb.bg_color = Color(0.290, 0.624, 0.831)
+	heat_bar.add_theme_stylebox_override("fill", sb)
 
 func _hint_for_order() -> String:
 	var o := GameState.active_order
 	var mold := GameState.current_mold()
 	if GameState.line.status == LineState.Status.SWAPPING:
-		return "교체 중… 사이클을 진행하세요 (%d 남음)." % GameState.line.swap_remaining
+		return "교체 중… 사이클을 진행하세요 (%d 남음). 사출하면 열이 오릅니다." % GameState.line.swap_remaining
 	if mold == null or mold.item != o.item:
 		return "%s 금형으로 교체한 뒤 사출하세요." % o.item
 	if o.good_units_produced >= o.quantity:
-		return "목표 수량 도달. C%d 전에 납품하세요." % o.deadline
+		return "목표 수량 도달. 남은 C%d 전에 납품하세요." % o.remaining_cycles(GameState.cycle)
 	if GameState.line.is_running():
 		return "사출 중… 사이클을 진행하세요. 열이 오르면 정지하세요."
+	if GameState.line.heat >= GameState.heat_warn_threshold():
+		return "열이 높습니다. 냉각 후 사출하거나 금형 교체(정지 필요)를 고르세요."
 	return "사출을 시작한 뒤 양품 %d까지 사이클을 진행하세요." % o.quantity
+
+func _update_onboarding_guide() -> void:
+	if onboarding_guide == null:
+		return
+	onboarding_guide.visible = GameState.should_show_guide()
+	if guide_label:
+		guide_label.text = "금형 → 교체 → 사출 → 납품"
+
+func _on_guide_skip() -> void:
+	GameState.dismiss_guide()
+
+func _on_shot_resolved(good: int, bad: int) -> void:
+	if info_vfx:
+		info_vfx.play_shot(good, bad)
+
+func _on_overheat() -> void:
+	if info_vfx:
+		info_vfx.play_overheat()
+
+func _on_settlement_vfx(result: Dictionary) -> void:
+	if str(result.get("kind", "")) != "settlement":
+		return
+	if info_vfx:
+		info_vfx.play_delivery(bool(result.get("ok", false)))
 
 func _pulse_machine() -> void:
 	var tw := create_tween()
@@ -229,3 +297,4 @@ func _on_buy() -> void:
 
 func _on_reset() -> void:
 	GameState.reset_game()
+	GameState.ensure_tutorial_onboarding()

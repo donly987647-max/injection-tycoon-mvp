@@ -10,6 +10,7 @@ func _ready() -> void:
 func _run() -> void:
 	GameState.reset_game()
 	GameState.rng.seed = 42  ## deterministic defects for smoke
+	_test_onboarding_flags()
 	_test_order_fails()
 	_test_mold_fails()
 	_test_injection_fail_stops()
@@ -36,6 +37,30 @@ func _check(cond: bool, msg: String) -> void:
 	else:
 		print("  ok: ", msg)
 
+func _test_onboarding_flags() -> void:
+	print("-- onboarding auto-accept + flags")
+	# reset_game alone must NOT auto-accept (smoke / headless safety)
+	_check(GameState.active_order == null, "reset_game leaves slot empty (no auto-accept in GameState)")
+	_check(GameState.onboarding_done == false, "onboarding_done false on new game")
+	_check(GameState.guide_dismissed == false, "guide_dismissed false on new game")
+	var ok := GameState.ensure_tutorial_onboarding()
+	_check(ok == true, "ensure_tutorial_onboarding accepts tutorial")
+	_check(GameState.active_order != null, "tutorial order active after ensure")
+	_check(GameState.active_order.item == "병 마개", "tutorial item 병 마개")
+	_check(GameState.active_order.quantity == 20, "tutorial qty 20")
+	_check(GameState.active_order.reward == 150, "tutorial reward 150")
+	_check(GameState.active_order.penalty == 0, "tutorial penalty 0")
+	_check(GameState.active_order.lead_cycles == 120, "tutorial lead_cycles 120")
+	_check(GameState.should_show_guide() == true, "guide visible before dismiss / delivery")
+	GameState.dismiss_guide()
+	_check(GameState.guide_dismissed == true, "guide_dismissed after X")
+	_check(GameState.should_show_guide() == false, "guide hidden after dismiss")
+	_check(GameState.active_order != null, "tutorial stays accepted after skip X")
+	# Clear slot so subsequent order-fail tests can accept freely
+	GameState.active_order = null
+	GameState.guide_dismissed = false  # leave flags mostly fresh; onboarding still false
+	GameState._changed()
+
 func _test_order_fails() -> void:
 	print("-- order fail branches")
 	var near := GameState.debug_push_order({
@@ -50,6 +75,8 @@ func _test_order_fails() -> void:
 	})
 	r = GameState.try_accept_order(good.id)
 	_check(r.get("ok") == true, "accept when slot free and not near-deadline")
+	_check(GameState.active_order.lead_cycles >= 100, "accepted order stores lead_cycles")
+	_check(GameState.is_active_deadline_urgent() == false, "not urgent at full lead window")
 	var extra := GameState.debug_push_order({
 		"item": "폰케이스", "quantity": 30, "deadline": GameState.cycle + 90,
 		"reward": 500, "margin_tag": "special", "penalty": 200,
@@ -101,6 +128,8 @@ func _test_injection_fail_stops() -> void:
 	GameState.line.heat = GameState.line.max_heat - 1.0
 	GameState.advance_cycle()
 	_check(GameState.line.status == LineState.Status.COOLING, "overheat fail-stop cools the line")
+	# Warn threshold is 80% of max_heat (64)
+	_check(is_equal_approx(GameState.heat_warn_threshold(), 64.0), "heat warn threshold 64")
 	GameState.line.heat = 0.0
 	GameState.line.status = LineState.Status.IDLE
 
@@ -161,6 +190,8 @@ func _test_happy_path() -> void:
 	_check(d.get("ok") == true, "delivery+settlement success credits reward")
 	_check(GameState.balance == bal_before + reward, "reward credited (+%d)" % reward)
 	_check(GameState.active_order == null, "slot free after settle")
+	_check(GameState.onboarding_done == true, "first successful delivery sets onboarding_done")
+	_check(GameState.upgrade_hint_shown == true, "upgrade hint marked after first success")
 
 func _test_delivery_fail_settlement() -> void:
 	print("-- delivery fail + late penalty settlement (40%% of reward)")
@@ -276,12 +307,18 @@ func _test_save_load_roundtrip() -> void:
 	GameState.defect_rate = 0.12
 	GameState.active_order.good_units_produced = 4
 	GameState.active_order.defect_units_produced = 1
+	GameState.onboarding_done = true
+	GameState.upgrade_hint_shown = true
+	GameState.guide_dismissed = true
 	var snap := {
 		"cycle": GameState.cycle,
 		"balance": GameState.balance,
 		"materials": GameState.materials,
 		"defect_rate": GameState.defect_rate,
 		"order_seq": GameState._order_seq,
+		"onboarding_done": GameState.onboarding_done,
+		"upgrade_hint_shown": GameState.upgrade_hint_shown,
+		"guide_dismissed": GameState.guide_dismissed,
 		"mold": GameState.line.current_mold_id,
 		"target": GameState.line.target_mold_id,
 		"swap_rem": GameState.line.swap_remaining,
@@ -327,6 +364,9 @@ func _test_save_load_roundtrip() -> void:
 	_check(GameState.board_orders.size() == snap["board_n"], "roundtrip board size")
 	_check(GameState.molds.size() == snap["molds_n"], "roundtrip molds size")
 	_check(GameState.get_mold("mold_toy").owned == snap["owned_toy"], "roundtrip mold owned flag")
+	_check(GameState.onboarding_done == snap["onboarding_done"], "roundtrip onboarding_done")
+	_check(GameState.upgrade_hint_shown == snap["upgrade_hint_shown"], "roundtrip upgrade_hint_shown")
+	_check(GameState.guide_dismissed == snap["guide_dismissed"], "roundtrip guide_dismissed")
 
 func _test_force_quit_recovery() -> void:
 	print("-- force-quit recovery (save mid-loop → wipe RAM → reload)")

@@ -11,6 +11,7 @@ var deadline: int = 0  ## absolute cycle number
 var reward: int = 0
 var margin_tag: int = MarginTag.BULK
 var penalty: int = 0  ## late = 40% of reward by default; tutorial may be 0
+var lead_cycles: int = 0  ## original lead window (for tension ≤30%)
 var accepted: bool = false
 var delivered: bool = false
 var good_units_produced: int = 0
@@ -31,6 +32,7 @@ static func from_dict(d: Dictionary) -> OrderData:
 	# Default late penalty = 40% of reward (MVP sheet), not half.
 	var default_pen := int(round(float(o.reward) * 0.4))
 	o.penalty = int(d.get("penalty", default_pen))
+	o.lead_cycles = int(d.get("lead_cycles", 0))
 	o.accepted = bool(d.get("accepted", false))
 	o.delivered = bool(d.get("delivered", false))
 	o.good_units_produced = int(d.get("good_units_produced", 0))
@@ -46,6 +48,7 @@ func to_dict() -> Dictionary:
 		"reward": reward,
 		"margin_tag": "special" if margin_tag == MarginTag.SPECIAL else "bulk",
 		"penalty": penalty,
+		"lead_cycles": lead_cycles,
 		"accepted": accepted,
 		"delivered": delivered,
 		"good_units_produced": good_units_produced,
@@ -56,11 +59,17 @@ func margin_tag_str() -> String:
 	return "특수" if margin_tag == MarginTag.SPECIAL else "대량"
 
 func is_near_deadline(current_cycle: int) -> bool:
-	## Near-deadline = remaining cycles <= 1
+	## Near-deadline = remaining cycles <= 1 (accept reject rule)
 	return (deadline - current_cycle) <= 1
 
 func remaining_cycles(current_cycle: int) -> int:
 	return deadline - current_cycle
+
+## Tension: remaining ≤ 30% of original lead window.
+func is_deadline_urgent(current_cycle: int) -> bool:
+	var lead := lead_cycles if lead_cycles > 0 else maxi(remaining_cycles(current_cycle), 1)
+	var rem := remaining_cycles(current_cycle)
+	return rem >= 0 and float(rem) <= float(lead) * 0.3
 
 func progress_text() -> String:
 	return "%d / %d 양품" % [good_units_produced, quantity]

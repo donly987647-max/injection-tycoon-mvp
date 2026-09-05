@@ -6,6 +6,8 @@ signal state_changed()
 signal toast_requested(message: String, kind: String)  ## kind: fail | info | warn
 signal settlement_requested(result: Dictionary)
 signal cycle_advanced(cycle: int)
+signal shot_resolved(good: int, bad: int)  ## per inject tick (VFX)
+signal overheat_triggered()  ## heat hit max / COOLING fail-stop
 
 const SAVE_PATH := "user://save_v1.json"
 const SAVE_TEMP := "user://save_v1.json.tmp"
@@ -24,6 +26,8 @@ const DEFECT_RATE_MAX := 0.35
 const LATE_PENALTY_RATIO := 0.4  ## late settlement = −40% of reward
 const EXCESS_DEFECT_RATIO := 0.15  ## fail settlement if defects / total > this
 const MOLD_SWAP_CYCLES := 8
+## Overheat tension toast at 80% of max_heat (64 when max_heat=80). Not a balance change.
+const HEAT_WARN_RATIO := 0.8
 
 var save_version: int = SAVE_VERSION
 var cycle: int = 0
@@ -42,6 +46,11 @@ var sheet_open: bool = false
 var _accepting: bool = false
 var _settling: bool = false
 var _swap_starting: bool = false
+## Onboarding / first-run flags (persisted).
+var onboarding_done: bool = false  ## true after first successful delivery
+var upgrade_hint_shown: bool = false
+var guide_dismissed: bool = false
+var _heat_warn_shown: bool = false  ## one toast per heat climb ≥ warn threshold
 
 func _ready() -> void:
 	rng.randomize()
@@ -81,6 +90,10 @@ func _new_game() -> void:
 	board_orders.clear()
 	active_order = null
 	_order_seq = 1
+	onboarding_done = false
+	upgrade_hint_shown = false
+	guide_dismissed = false
+	_heat_warn_shown = false
 	_refill_board()
 
 func _default_molds() -> Array[MoldData]:
@@ -157,6 +170,7 @@ func _refill_board() -> void:
 			"reward": template["reward"],
 			"margin_tag": template["margin_tag"],
 			"penalty": template["penalty"],
+			"lead_cycles": int(template["lead"]),
 		})
 		_order_seq += 1
 		board_orders.append(o)
@@ -237,13 +251,23 @@ func current_mold() -> MoldData:
 func order_summary() -> String:
 	if active_order == null:
 		return "활성 주문 없음"
-	return "%s  %s  기한 C%d  $%d  [%s]" % [
+	var rem := active_order.remaining_cycles(cycle)
+	var rem_txt := "남은 C%d" % rem
+	if active_order.is_deadline_urgent(cycle):
+		rem_txt = "기한 임박 · %s" % rem_txt
+	return "%s  %s  %s  $%d  [%s]" % [
 		active_order.item,
 		active_order.progress_text(),
-		active_order.deadline,
+		rem_txt,
 		active_order.reward,
 		active_order.margin_tag_str(),
 	]
+
+func is_active_deadline_urgent() -> bool:
+	return active_order != null and active_order.is_deadline_urgent(cycle)
+
+func heat_warn_threshold() -> float:
+	return line.max_heat * HEAT_WARN_RATIO
 
 func hud_defect_text() -> String:
 	return "%.0f%%" % (defect_rate * 100.0)
@@ -267,6 +291,8 @@ func try_accept_order(order_id: String) -> Dictionary:
 	_accepting = true
 	active_order = order
 	active_order.accepted = true
+	if active_order.lead_cycles <= 0:
+		active_order.lead_cycles = maxi(active_order.remaining_cycles(cycle), 1)
 	_remove_board(order_id)
 	_refill_board()
 	_changed()
@@ -411,6 +437,8 @@ func advance_cycle() -> void:
 			_inject_tick()
 		LineState.Status.IDLE, LineState.Status.COOLING:
 			line.heat = maxf(line.heat - HEAT_COOL_PER_CYCLE, 0.0)
+			if line.heat < heat_warn_threshold():
+				_heat_warn_shown = false
 			if line.heat <= 0.0:
 				line.status = LineState.Status.IDLE
 	# Board orders past deadline drop off
@@ -451,9 +479,11 @@ func _inject_tick() -> void:
 		active_order.defect_units_produced += bad
 	line.units_this_run += shots
 	line.heat += mold.heat_per_cycle
+	shot_resolved.emit(good, bad)
+	_maybe_heat_warn()
 	if line.heat >= line.max_heat:
 		line.heat = line.max_heat
-		_fail_stop("과열 — 사출 정지. 라인을 냉각하세요.")
+		_fail_stop_overheat()
 		return
 	# Auto-stop if order already filled (player still must deliver)
 	if active_order and active_order.good_units_produced >= active_order.quantity:
@@ -463,6 +493,19 @@ func _inject_tick() -> void:
 func _fail_stop(msg: String) -> void:
 	line.status = LineState.Status.COOLING
 	toast(msg, "fail")
+
+func _fail_stop_overheat() -> void:
+	line.status = LineState.Status.COOLING
+	toast("과열 — 사출 정지. 라인을 냉각하세요.", "fail")
+	overheat_triggered.emit()
+
+func _maybe_heat_warn() -> void:
+	if line.heat >= heat_warn_threshold():
+		if not _heat_warn_shown:
+			_heat_warn_shown = true
+			toast("과열 경고 — 열이 높습니다. 정지하거나 냉각하세요.", "warn")
+	else:
+		_heat_warn_shown = false
 
 # ---------------------------------------------------------------------------
 # 4. DELIVERY — success if good_units >= qty before deadline; else fail
@@ -531,6 +574,12 @@ func try_deliver() -> Dictionary:
 	last_settlement = result
 	order.delivered = true
 	active_order = null
+	if settle_ok and not onboarding_done:
+		onboarding_done = true
+		# One-time upgrade hint after first successful delivery (UI also reacts).
+		if not upgrade_hint_shown:
+			upgrade_hint_shown = true
+			toast("잔고로 업그레이드", "info")
 	save_game()
 	settlement_requested.emit(result)
 	_settling = false
@@ -563,6 +612,9 @@ func save_game() -> bool:
 		"materials": materials,
 		"defect_rate": defect_rate,
 		"order_seq": _order_seq,
+		"onboarding_done": onboarding_done,
+		"upgrade_hint_shown": upgrade_hint_shown,
+		"guide_dismissed": guide_dismissed,
 		"line": line.to_dict(),
 		"molds": molds.map(func(m: MoldData) -> Dictionary: return m.to_dict()),
 		"board_orders": board_orders.map(func(o: OrderData) -> Dictionary: return o.to_dict()),
@@ -615,6 +667,10 @@ func load_game() -> bool:
 	materials = int(d.get("materials", STARTING_MATERIALS))
 	defect_rate = float(d.get("defect_rate", STARTING_DEFECT_RATE))
 	_order_seq = int(d.get("order_seq", 1))
+	onboarding_done = bool(d.get("onboarding_done", false))
+	upgrade_hint_shown = bool(d.get("upgrade_hint_shown", false))
+	guide_dismissed = bool(d.get("guide_dismissed", false))
+	_heat_warn_shown = false
 	line = LineState.from_dict(d.get("line", {}))
 	molds.clear()
 	for m in d.get("molds", []):
@@ -648,6 +704,10 @@ func reload_from_save() -> bool:
 	active_order = null
 	last_settlement = {}
 	_order_seq = 1
+	onboarding_done = false
+	upgrade_hint_shown = false
+	guide_dismissed = false
+	_heat_warn_shown = false
 	if load_game():
 		_changed()
 		return true
@@ -674,6 +734,55 @@ func reset_game() -> void:
 	save_game()
 	_changed()
 	toast("초기화되었습니다.", "info")
+
+# ---------------------------------------------------------------------------
+# Onboarding (first run)
+# ---------------------------------------------------------------------------
+
+## Auto-accept tutorial order (병 마개 20 / lead 120 / $150 / pen 0) if needed.
+## Does not open a confirm sheet. Safe to call from Main; smoke does not call this.
+func ensure_tutorial_onboarding() -> bool:
+	if onboarding_done:
+		return false
+	if active_order != null:
+		return false
+	var tutorial: OrderData = null
+	for o in board_orders:
+		if o.item == "병 마개" and o.quantity == 20 and o.reward == 150 and o.penalty == 0:
+			tutorial = o
+			break
+	if tutorial == null:
+		# Guarantee tutorial exists on board for first-run.
+		tutorial = OrderData.from_dict({
+			"id": "ord_%d" % _order_seq,
+			"item": "병 마개",
+			"quantity": 20,
+			"deadline": cycle + 120,
+			"reward": 150,
+			"margin_tag": "bulk",
+			"penalty": 0,
+			"lead_cycles": 120,
+		})
+		_order_seq += 1
+		board_orders.insert(0, tutorial)
+	active_order = tutorial
+	active_order.accepted = true
+	if active_order.lead_cycles <= 0:
+		active_order.lead_cycles = 120
+	_remove_board(tutorial.id)
+	_refill_board()
+	_changed()
+	return true
+
+func dismiss_guide() -> void:
+	if guide_dismissed:
+		return
+	guide_dismissed = true
+	save_game()
+	_changed()
+
+func should_show_guide() -> bool:
+	return not onboarding_done and not guide_dismissed
 
 # ---------------------------------------------------------------------------
 # UI helpers

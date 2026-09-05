@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>사출공장 타이쿤</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+:root{
+  --bg:#12141c;
+  --panel:#1d2232;
+  --panel-light:#272e44;
+  --border:#07080c;
+  --yellow:#f4c430;
+  --orange:#e0973c;
+  --blue:#5b8fd6;
+  --purple:#a35fe0;
+  --green:#6fcf5b;
+  --red:#e94560;
+  --text:#eef0f4;
+  --muted:#8b93a8;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}
+.pixel{font-family:'Press Start 2P',monospace;}
+button,select{font-family:'Noto Sans KR',sans-serif;}
+
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:480px;margin:0 auto;
+  border-left:1px solid #000;border-right:1px solid #000;}
+
+/* ---------- Header ---------- */
+header#topbar{flex:0 0 auto;background:var(--panel);border-bottom:3px solid var(--border);padding:10px 12px 8px;}
+.titleRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.titleRow h1{font-size:15px;margin:0;letter-spacing:.5px;}
+.hazard{height:5px;background:repeating-linear-gradient(135deg,var(--yellow) 0 8px,#000 8px 16px);
+  border-radius:0;margin-bottom:8px;opacity:.9;}
+.statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.statBox{background:var(--panel-light);border:2px solid var(--border);padding:5px 4px;text-align:center;}
+.statBox .lbl{font-size:9px;color:var(--muted);margin-bottom:3px;}
+.statBox .val{font-size:11px;}
+.statBox.cash .val{color:var(--green);}
+.statBox.rep .val{color:var(--yellow);}
+.statBox.day .val{color:#7ec8e3;}
+.statBox.mat .val{color:var(--orange);}
+.matBarOuter{height:5px;background:#000;margin-top:4px;border:1px solid var(--border);}
+.matBarInner{height:100%;background:var(--orange);}
+
+/* ---------- Tabs ---------- */
+nav#tabs{flex:0 0 auto;display:flex;background:#0c0e15;border-bottom:3px solid var(--border);}
+.tabBtn{flex:1;position:relative;background:none;border:none;color:var(--muted);padding:9px 2px 7px;
+  font-size:10px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;}
+.tabBtn .ic{font-size:17px;}
+.tabBtn.active{color:var(--yellow);background:var(--panel);}
+.tabBtn.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--yellow);}
+.badge{position:absolute;top:3px;right:14%;background:var(--red);color:#fff;font-size:9px;
+  min-width:15px;height:15px;border-radius:0;border:1px solid #000;display:flex;align-items:center;justify-content:center;padding:0 2px;}
+
+/* ---------- Main content ---------- */
+main#content{flex:1;overflow-y:auto;padding:12px;padding-bottom:28px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.hint{color:var(--muted);font-size:12px;margin:0 0 10px;text-align:center;}
+#canvasWrap{display:flex;justify-content:center;}
+canvas#factoryCanvas{background:#0a0b11;border:3px solid var(--border);box-shadow:4px 4px 0 #000;image-rendering:pixelated;}
+.legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px;font-size:10px;color:var(--muted);}
+.legend span{display:flex;align-items:center;gap:4px;}
+.dot{width:8px;height:8px;display:inline-block;border:1px solid #000;}
+
+h2{font-size:13px;margin:16px 0 8px;color:var(--yellow);border-bottom:2px solid var(--panel-light);padding-bottom:6px;
+  display:flex;align-items:center;justify-content:space-between;}
+h2 button{font-size:10px;padding:5px 8px;}
+
+.card{background:var(--panel);border:2px solid var(--border);box-shadow:3px 3px 0 #000;padding:10px;margin-bottom:10px;}
+.cardHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:13px;}
+.muted{color:var(--muted);}
+.small{font-size:11px;}
+.tag{font-size:10px;padding:2px 6px;border:1px solid #000;}
+.tag.success{background:var(--green);color:#08260a;}
+
+.orderBody{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:4px 0;}
+.reward{color:var(--green);font-weight:700;}
+.card.order.soon{border-color:var(--orange);}
+.card.order.warn{border-color:var(--red);}
+
+.btn{background:var(--panel-light);color:var(--text);border:2px solid var(--border);box-shadow:3px 3px 0 #000;
+  padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;width:100%;margin-top:6px;}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000;}
+.btn.primary{background:var(--yellow);color:#241a02;}
+.btn.danger{background:var(--red);color:#fff;}
+.btn.small{width:auto;padding:6px 10px;font-size:11px;margin-top:8px;}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:3px 3px 0 #000;}
+
+.chipRow{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;}
+.chip{background:var(--panel-light);border:2px solid var(--border);color:var(--text);padding:6px 9px;font-size:11px;cursor:pointer;}
+.chip.active{background:var(--blue);color:#fff;border-color:#000;}
+
+select{background:var(--panel-light);color:var(--text);border:2px solid var(--border);padding:7px;font-size:12px;width:100%;margin-top:4px;}
+
+.pbar{height:8px;background:#000;border:1px solid #000;margin-top:4px;}
+.pbarFill{height:100%;background:var(--yellow);}
+.progressRow{margin-top:10px;}
+.warn{color:var(--red);font-weight:700;}
+
+.shopItem{display:flex;justify-content:space-between;align-items:center;background:var(--panel-light);
+  border:2px solid var(--border);padding:8px;margin-bottom:8px;}
+.shopItem button{width:auto;margin:0;}
+.price{color:var(--green);font-weight:700;}
+
+/* ---------- Modal ---------- */
+#modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .15s;z-index:50;}
+#modalOverlay.show{opacity:1;pointer-events:auto;}
+#modalCard{background:var(--panel);border:3px solid var(--border);border-bottom:none;box-shadow:0 -4px 0 #000;
+  width:100%;max-width:480px;padding:16px;padding-bottom:24px;transform:translateY(20px);transition:transform .15s;
+  max-height:80vh;overflow-y:auto;position:relative;}
+#modalOverlay.show #modalCard{transform:translateY(0);}
+#modalClose{position:absolute;top:10px;right:10px;background:var(--panel-light);border:2px solid var(--border);
+  color:var(--text);width:28px;height:28px;font-size:14px;cursor:pointer;}
+#modalBody h3{margin:0 0 10px;font-size:14px;padding-right:30px;}
+
+/* ---------- Toast ---------- */
+#toastContainer{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:100;
+  display:flex;flex-direction:column;gap:6px;align-items:center;width:calc(100% - 24px);max-width:456px;pointer-events:none;}
+.toast{background:#000;color:#fff;border:2px solid var(--yellow);padding:9px 14px;font-size:12px;
+  opacity:0;transform:translateY(10px);transition:all .25s;max-width:100%;text-align:center;}
+.toast.show{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="titleRow"><h1 class="pixel">🏭 사출공장 타이쿤</h1></div>
+    <div class="hazard"></div>
+    <div class="statGrid">
+      <div class="statBox cash"><div class="lbl">💰 자금</div><div class="val pixel" id="statCash">0</div></div>
+      <div class="statBox rep"><div class="lbl">⭐ 평판</div><div class="val pixel" id="statRep">0</div></div>
+      <div class="statBox day"><div class="lbl">📅 일차</div><div class="val pixel" id="statDay">1</div></div>
+      <div class="statBox mat"><div class="lbl">🧪 원료</div><div class="val pixel" id="statMaterial">0</div>
+        <div class="matBarOuter"><div class="matBarInner" id="matBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </header>
+
+  <nav id="tabs"></nav>
+
+  <main id="content">
+    <section id="tab-factory" class="tab-panel active">
+      <p class="hint">구역을 눌러 사출기를 설치하거나 관리하세요.</p>
+      <div id="canvasWrap"><canvas id="factoryCanvas"></canvas></div>
+      <div class="legend">
+        <span><span class="dot" style="background:#6fcf5b"></span>가동중</span>
+        <span><span class="dot" style="background:#e94560"></span>원료 부족</span>
+        <span><span class="dot" style="background:#2f3346"></span>미가동</span>
+        <span>👷 = 직원 배치됨</span>
+      </div>
+    </section>
+
+    <section id="tab-orders" class="tab-panel">
+      <h2>📋 진행 중인 주문</h2>
+      <div id="ordersList"></div>
+    </section>
+
+    <section id="tab-staff" class="tab-panel">
+      <h2>👷 고용된 직원</h2>
+      <div id="staffList"></div>
+      <h2>🙋 채용 후보 <button class="btn small" id="rerollBtn">🔄 새로고침 ₩500</button></h2>
+      <div id="candidateList"></div>
+    </section>
+
+    <section id="tab-rnd" class="tab-panel">
+      <h2>🔬 연구개발</h2>
+      <div id="rndList"></div>
+    </section>
+
+    <section id="tab-material" class="tab-panel">
+      <h2>🧪 원료 구매</h2>
+      <div id="materialShop"></div>
+    </section>
+  </main>
+</div>
+
+<div id="modalOverlay">
+  <div id="modalCard">
+    <button id="modalClose">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+<div id="toastContainer"></div>
+
+<script>
+'use strict';
+
+/* ===================== CONFIG ===================== */
+const ROWS=3, COLS=4, TILE=64, GAP=10;
+const CANVAS_W = COLS*TILE + (COLS+1)*GAP;
+const CANVAS_H = ROWS*TILE + (ROWS+1)*GAP;
+const DAY_TICKS = 20; // seconds per in-game day
+const INITIAL_UNLOCKED_SLOTS = 3;
+
+const PRODUCTS = [
+  {id:'cup',   name:'플라스틱 컵',   emoji:'🥤', tier:1, prodTime:4,  matCost:2, requiresUnlock:false},
+  {id:'toy',   name:'장난감 부품',   emoji:'🧸', tier:1, prodTime:6,  matCost:3, requiresUnlock:false},
+  {id:'case',  name:'가전 케이스',   emoji:'📦', tier:2, prodTime:10, matCost:5, requiresUnlock:true, unlockCost:15000},
+  {id:'bumper',name:'자동차 범퍼',   emoji:'🚗', tier:3, prodTime:16, matCost:8, requiresUnlock:true, unlockCost:50000, prereq:'case'},
+];
+
+const MACHINE_LIST = [
+  {id:'basic',     name:'기본 사출기',   tier:1, cost:5000,  speedMult:1.0, color:'#5b8fd6'},
+  {id:'mid',       name:'중형 사출기',   tier:2, cost:20000, speedMult:1.3, color:'#e0973c'},
+  {id:'precision', name:'정밀 사출기',   tier:3, cost:60000, speedMult:1.7, color:'#a35fe0'},
+];
+const MACHINES = {}; MACHINE_LIST.forEach(m=>MACHINES[m.id]=m);
+
+const CLIENTS = [
+  {name:'모닝카페',       productIds:['cup']},
+  {name:'다이소플러스',   productIds:['cup','toy']},
+  {name:'퍼니키즈토이',   productIds:['toy']},
+  {name:'베이비랜드',     productIds:['toy']},
+  {name:'홈가전코리아',   productIds:['case']},
+  {name:'스마트리빙',     productIds:['case']},
+  {name:'스피드모터스',   productIds:['bumper']},
+  {name:'오토파츠코리아', productIds:['bumper']},
+];
+
+const UPGRADE_DEFS = [
+  {key:'speed',            name:'⚡ 생산 속도 향상',       costs:[10000,25000,50000], effect:'전체 생산 속도 +10%p / 레벨'},
+  {key:'materialDiscount', name:'💰 원료 대량구매 할인',   costs:[8000,20000,40000],  effect:'원료 구매 가격 -10%p / 레벨'},
+  {key:'warehouse',        name:'🏬 원료 창고 확장',       costs:[6000,15000],        effect:'원료 저장 한도 +100 / 레벨'},
+  {key:'orderSlots',       name:'📋 주문 접수 슬롯 확장',  costs:[12000,30000],       effect:'동시 진행 주문 +1 / 레벨'},
+];
+
+const NAME_POOL = ['김민준','이서연','박도윤','최수아','정하준','강지우','조은서','윤도현','장하은','임서준','한지민','오유진','신동현','배소율','문가온','서지호'];
+
+const TABS = [
+  {key:'factory', label:'공장', icon:'🏭'},
+  {key:'orders',  label:'주문', icon:'📋'},
+  {key:'staff',   label:'직원', icon:'👷'},
+  {key:'rnd',     label:'연구', icon:'🔬'},
+  {key:'material',label:'원료', icon:'🧪'},
+];
+
+/* ===================== STATE ===================== */
+let state = null;
+let nextOrderId=1, nextStaffId=1, nextCandidateId=1;
+
+function getProduct(id){ return PRODUCTS.find(p=>p.id===id); }
+function unlockCost(idx){ return idx<INITIAL_UNLOCKED_SLOTS ? 0 : 4000 + (idx-INITIAL_UNLOCKED_SLOTS)*2500; }
+function materialCap(){ return 200 + (state.upgrades.warehouse||0)*100; }
+function maxOrders(){ return 3 + (state.upgrades.orderSlots||0); }
+function speedBonus(){ return 1 + (state.upgrades.speed||0)*0.1; }
+function materialDiscount(){ return (state.upgrades.materialDiscount||0)*0.1; }
+
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function pick(arr){ return arr[randInt(0,arr.length-1)]; }
+function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+function formatMoney(n){ return '₩'+Math.round(n).toLocaleString('ko-KR'); }
+function formatShort(n){ if(n>=10000) return Math.round(n/1000)+'K'; if(n>=1000) return (n/1000).toFixed(1)+'K'; return String(Math.round(n)); }
+
+function buildInitialState(){
+  state = {
+    cash: 25000,
+    reputation: 50,
+    day: 1,
+    tickInDay: 0,
+    material: 100,
+    slots: [],
+    staff: [],
+    candidates: [],
+    orders: [],
+    inventory: {},
+    unlockedProducts: ['cup','toy'],
+    upgrades: {speed:0, materialDiscount:0, warehouse:0, orderSlots:0},
+    activeTab: 'factory',
+  };
+  for(let i=0;i<ROWS*COLS;i++){
+    state.slots.push({unlocked: i<INITIAL_UNLOCKED_SLOTS, machineType:null, product:null, progress:0, staffId:null, blocked:false});
+  }
+  for(let i=0;i<3;i++) state.candidates.push(generateCandidate());
+  state.orders.push(makeOrderObject());
+}
+
+/* ===================== ORDERS ===================== */
+function makeOrderObject(){
+  const eligibleClients = CLIENTS.filter(c=>c.productIds.some(pid=>state.unlockedProducts.includes(pid)));
+  const client = pick(eligibleClients.length? eligibleClients : CLIENTS);
+  const possible = client.productIds.filter(pid=>state.unlockedProducts.includes(pid));
+  const productId = possible.length? pick(possible) : 'cup';
+  const product = getProduct(productId);
+  let qty, deadlineDays, valuePerUnit;
+  if(product.tier===1){ qty=randInt(6,14); deadlineDays=randInt(3,5); valuePerUnit=randInt(130,180); }
+  else if(product.tier===2){ qty=randInt(3,8); deadlineDays=randInt(5,8); valuePerUnit=randInt(350,480); }
+  else { qty=randInt(2,5); deadlineDays=randInt(8,12); valuePerUnit=randInt(800,1100); }
+  const reward = Math.round(qty*valuePerUnit);
+  return {id: nextOrderId++, client: client.name, productId, qty, reward, deadlineDay: state.day+deadlineDays};
+}
+function tryGenerateOrder(){
+  if(state.orders.length >= maxOrders()) return;
+  if(Math.random() > 0.5 + state.reputation/400) return;
+  state.orders.push(makeOrderObject());
+}
+function deliverOrder(id){
+  const order = state.orders.find(o=>o.id===id);
+  if(!order) return;
+  const have = state.inventory[order.productId]||0;
+  if(have < order.qty){ toast('⚠️ 재고가 부족합니다.'); return; }
+  state.inventory[order.productId] -= order.qty;
+  state.cash += order.reward;
+  const product = getProduct(order.productId);
+  state.reputation = clamp(state.reputation + product.tier*2 + 1, 0, 100);
+  state.orders = state.orders.filter(o=>o.id!==id);
+  toast(`✅ ${order.client} 납품 완료! ${formatMoney(order.reward)} 획득`);
+  renderAll();
+}
+
+/* ===================== STAFF ===================== */
+function generateCandidate(){
+  const skill = randInt(1,3);
+  const salary = 200 + skill*220 + randInt(-40,40);
+  const signCost = skill*700 + randInt(-100,150);
+  return {id: nextCandidateId++, name: pick(NAME_POOL), skill, salary, signCost};
+}
+function hireCandidate(id){
+  const c = state.candidates.find(x=>x.id===id);
+  if(!c) return;
+  if(state.cash < c.signCost){ toast('자금이 부족합니다.'); return; }
+  state.cash -= c.signCost;
+  state.staff.push({id: nextStaffId++, name:c.name, skill:c.skill, salary:c.salary, assignedSlot:null});
+  state.candidates = state.candidates.filter(x=>x.id!==id);
+  state.candidates.push(generateCandidate());
+  toast(`🙋 ${c.name}님을 채용했습니다!`);
+  renderAll();
+}
+function fireStaff(id){
+  const w = state.staff.find(x=>x.id===id);
+  if(!w) return;
+  if(w.assignedSlot!==null && state.slots[w.assignedSlot]) state.slots[w.assignedSlot].staffId=null;
+  state.staff = state.staff.filter(x=>x.id!==id);
+  toast(`${w.name}님을 해고했습니다.`);
+  renderAll();
+}
+function rerollCandidates(){
+  if(state.cash < 500){ toast('자금이 부족합니다.'); return; }
+  state.cash -= 500;
+  state.candidates = [generateCandidate(),generateCandidate(),generateCandidate()];
+  toast('채용 후보를 새로고침했습니다.');
+  renderAll();
+}
+function setStaffAssignment(staffId, slotIdxOrNull){
+  const staff = state.staff.find(s=>s.id===staffId);
+  if(!staff) return;
+  if(staff.assignedSlot!==null && state.slots[staff.assignedSlot]) state.slots[staff.assignedSlot].staffId=null;
+  if(slotIdxOrNull!==null){
+    const target = state.slots[slotIdxOrNull];
+    if(!target || !target.machineType){ toast('해당 구역에는 기계가 없습니다.'); staff.assignedSlot=null; return; }
+    if(target.staffId && target.staffId!==staffId){
+      const other = state.staff.find(s=>s.id===target.staffId);
+      if(other) other.assignedSlot=null;
+    }
+    target.staffId = staffId;
+    staff.assignedSlot = slotIdxOrNull;
+  } else {
+    staff.assignedSlot = null;
+  }
+}
+function reassignFromStaffTab(staffId, value){
+  const slotIdx = value===''? null : parseInt(value,10);
+  setStaffAssignment(staffId, slotIdx);
+  renderAll();
+}
+
+/* ===================== PRODUCTION ===================== */
+function produceAll(){
+  const gBonus = speedBonus();
+  for(const slot of state.slots){
+    if(!slot.machineType || !slot.product){ slot.blocked=false; continue; }
+    const machine = MACHINES[slot.machineType];
+    const product = getProduct(slot.product);
+    const staff = slot.staffId? state.staff.find(w=>w.id===slot.staffId) : null;
+    const autoFactor = staff? (1+staff.skill*0.18) : 0.55;
+    const rate = (1/product.prodTime) * machine.speedMult * autoFactor * gBonus;
+    const matNeed = product.matCost * rate;
+    if(state.material < matNeed){ slot.blocked = true; continue; }
+    slot.blocked = false;
+    state.material -= matNeed;
+    slot.progress += rate;
+    if(slot.progress >= 1){
+      const units = Math.floor(slot.progress);
+      slot.progress -= units;
+      state.inventory[slot.product] = (state.inventory[slot.product]||0) + units;
+    }
+  }
+  state.material = clamp(state.material, 0, materialCap());
+}
+
+function newDay(){
+  state.day++;
+  const totalSalary = state.staff.reduce((s,w)=>s+w.salary,0);
+  if(totalSalary>0){
+    if(state.cash >= totalSalary){ state.cash -= totalSalary; }
+    else{ state.cash = 0; state.reputation = clamp(state.reputation-3,0,100); toast('⚠️ 자금 부족으로 급여를 지급하지 못했습니다! 평판 하락'); }
+  }
+  const expired = state.orders.filter(o=>o.deadlineDay < state.day);
+  if(expired.length){
+    state.orders = state.orders.filter(o=>o.deadlineDay >= state.day);
+    state.reputation = clamp(state.reputation - 5*expired.length, 0, 100);
+    expired.forEach(o=>toast(`❌ ${o.client} 주문이 납기 초과로 취소되었습니다.`));
+  }
+  tryGenerateOrder();
+  if(Math.random()<0.35) tryGenerateOrder();
+}
+
+function simulate(){
+  produceAll();
+  state.tickInDay++;
+  let dayChanged = false;
+  if(state.tickInDay >= DAY_TICKS){ state.tickInDay=0; newDay(); dayChanged = true; }
+  if(dayChanged){ renderAll(); } else { renderTopbar(); renderOrders(); }
+}
+
+/* ===================== SLOT ACTIONS ===================== */
+function unlockSlot(idx){
+  const cost = unlockCost(idx);
+  if(state.cash < cost){ toast('자금이 부족합니다.'); return; }
+  state.cash -= cost;
+  state.slots[idx].unlocked = true;
+  toast('🔓 구역 잠금 해제!');
+  renderAll();
+  openSlotModal(idx);
+}
+function buyMachine(idx, typeId){
+  const m = MACHINES[typeId];
+  if(state.cash < m.cost){ toast('자금이 부족합니다.'); return; }
+  state.cash -= m.cost;
+  state.slots[idx].machineType = typeId;
+  state.slots[idx].product = null;
+  state.slots[idx].progress = 0;
+  toast(`🏭 ${m.name} 설치 완료!`);
+  renderAll();
+  renderManageModal(idx);
+}
+function setSlotProduct(idx, pid){
+  state.slots[idx].product = pid;
+  state.slots[idx].progress = 0;
+  renderManageModal(idx);
+}
+function assignStaffToSlot(idx, value){
+  if(value===''){
+    if(state.slots[idx].staffId) setStaffAssignment(state.slots[idx].staffId, null);
+  } else {
+    setStaffAssignment(parseInt(value,10), idx);
+  }
+  renderAll();
+  renderManageModal(idx);
+}
+function demolishSlot(idx){
+  const slot = state.slots[idx];
+  const machine = MACHINES[slot.machineType];
+  const refund = Math.round(machine.cost*0.4);
+  state.cash += refund;
+  if(slot.staffId){
+    const w = state.staff.find(s=>s.id===slot.staffId);
+    if(w) w.assignedSlot = null;
+  }
+  state.slots[idx] = {unlocked:true, machineType:null, product:null, progress:0, staffId:null, blocked:false};
+  toast(`🔨 철거 완료 (+${formatMoney(refund)})`);
+  renderAll();
+  closeModal();
+}
+
+/* ===================== R&D / MATERIAL ===================== */
+function buyUpgrade(key){
+  const def = UPGRADE_DEFS.find(u=>u.key===key);
+  const level = state.upgrades[key]||0;
+  if(level >= def.costs.length) return;
+  const cost = def.costs[level];
+  if(state.cash < cost){ toast('자금이 부족합니다.'); return; }
+  state.cash -= cost;
+  state.upgrades[key] = level+1;
+  toast(`✅ ${def.name} Lv.${level+1} 달성!`);
+  renderAll();
+}
+function unlockProduct(id){
+  const p = getProduct(id);
+  if(state.cash < p.unlockCost){ toast('자금이 부족합니다.'); return; }
+  state.cash -= p.unlockCost;
+  state.unlockedProducts.push(id);
+  toast(`🎉 ${p.name} 개발 완료!`);
+  renderAll();
+}
+function buyMaterial(amount, cost){
+  if(state.cash < cost){ toast('자금이 부족합니다.'); return; }
+  state.cash -= cost;
+  state.material = clamp(state.material+amount, 0, materialCap());
+  toast(`🧪 원료 ${amount}개 구매 완료!`);
+  renderAll();
+}
+
+/* ===================== RENDER ===================== */
+function renderTopbar(){
+  document.getElementById('statCash').textContent = formatMoney(state.cash);
+  document.getElementById('statRep').textContent = Math.round(state.reputation);
+  document.getElementById('statDay').textContent = state.day;
+  document.getElementById('statMaterial').textContent = Math.round(state.material)+'/'+materialCap();
+  document.getElementById('matBar').style.width = clamp(state.material/materialCap()*100,0,100)+'%';
+}
+
+function renderOrders(){
+  const list = document.getElementById('ordersList');
+  if(!state.orders.length){
+    list.innerHTML = '<p class="muted small">진행 중인 주문이 없습니다. 곧 새로운 주문이 들어옵니다.</p>';
+  } else {
+    list.innerHTML = state.orders.map(o=>{
+      const product = getProduct(o.productId);
+      const have = state.inventory[o.productId]||0;
+      const canDeliver = have >= o.qty;
+      const daysLeft = o.deadlineDay - state.day;
+      const urgency = daysLeft<=1 ? 'warn' : (daysLeft<=3 ? 'soon' : '');
+      return `<div class="card order ${urgency}">
+        <div class="cardHead"><strong>${o.client}</strong><span class="reward">${formatMoney(o.reward)}</span></div>
+        <div class="orderBody"><span>${product.emoji} ${product.name} × ${o.qty}</span><span class="muted small">보유 ${have}/${o.qty}</span></div>
+        <div class="muted small">납기: ${daysLeft>0 ? daysLeft+'일 남음' : '오늘 마감'}</div>
+        <button class="btn primary" ${canDeliver?'':'disabled'} onclick="deliverOrder(${o.id})">📦 납품하기</button>
+      </div>`;
+    }).join('');
+  }
+  const tabBtn = document.querySelector('.tabBtn[data-key="orders"]');
+  if(tabBtn){
+    let badge = tabBtn.querySelector('.badge');
+    if(state.orders.length){
+      if(!badge){ badge=document.createElement('span'); badge.className='badge'; tabBtn.appendChild(badge); }
+      badge.textContent = state.orders.length;
+    } else if(badge){ badge.remove(); }
+  }
+}
+
+function renderStaff(){
+  const staffList = document.getElementById('staffList');
+  staffList.innerHTML = state.staff.length ? state.staff.map(w=>{
+    const options = state.slots.map((s,i)=> s.machineType ? `<option value="${i}" ${w.assignedSlot===i?'selected':''}>${i+1}번 구역 · ${MACHINES[s.machineType].name}</option>` : null).filter(Boolean).join('');
+    return `<div class="card">
+      <div class="cardHead"><strong>${w.name}</strong><span>${'★'.repeat(w.skill)}${'☆'.repeat(3-w.skill)}</span></div>
+      <div class="muted small">일급 ${formatMoney(w.salary)}</div>
+      <select onchange="reassignFromStaffTab(${w.id}, this.value)">
+        <option value="">미배치</option>
+        ${options}
+      </select>
+      <button class="btn danger small" onclick="fireStaff(${w.id})">해고</button>
+    </div>`;
+  }).join('') : '<p class="muted small">고용된 직원이 없습니다. 아래 후보에서 채용해보세요.</p>';
+
+  const candList = document.getElementById('candidateList');
+  candList.innerHTML = state.candidates.map(c=>`
+    <div class="card">
+      <div class="cardHead"><strong>${c.name}</strong><span>${'★'.repeat(c.skill)}${'☆'.repeat(3-c.skill)}</span></div>
+      <div class="muted small">일급 ${formatMoney(c.salary)} · 채용비 ${formatMoney(c.signCost)}</div>
+      <button class="btn primary small" ${state.cash<c.signCost?'disabled':''} onclick="hireCandidate(${c.id})">채용하기</button>
+    </div>
+  `).join('');
+}
+
+function renderRnd(){
+  const rndList = document.getElementById('rndList');
+  let html = UPGRADE_DEFS.map(u=>{
+    const level = state.upgrades[u.key]||0;
+    const maxed = level >= u.costs.length;
+    const cost = maxed ? null : u.costs[level];
+    return `<div class="card">
+      <div class="cardHead"><strong>${u.name}</strong><span class="muted small">Lv.${level}/${u.costs.length}</span></div>
+      <div class="muted small">${u.effect}</div>
+      <button class="btn primary small" ${maxed?'disabled':''} ${(!maxed && state.cash<cost)?'disabled':''} onclick="buyUpgrade('${u.key}')">${maxed?'최대 레벨':'업그레이드 '+formatMoney(cost)}</button>
+    </div>`;
+  }).join('');
+
+  html += '<h2 style="margin-top:20px;">📦 신제품 개발</h2>';
+  html += PRODUCTS.filter(p=>p.requiresUnlock).map(p=>{
+    const unlocked = state.unlockedProducts.includes(p.id);
+    const prereqOk = !p.prereq || state.unlockedProducts.includes(p.prereq);
+    let action;
+    if(unlocked) action = '<span class="tag success">개발 완료</span>';
+    else if(prereqOk) action = `<button class="btn primary small" ${state.cash<p.unlockCost?'disabled':''} onclick="unlockProduct('${p.id}')">개발하기 ${formatMoney(p.unlockCost)}</button>`;
+    else action = `<span class="muted small">먼저 ${getProduct(p.prereq).name}을(를) 개발하세요</span>`;
+    return `<div class="card">
+      <div class="cardHead"><strong>${p.emoji} ${p.name}</strong></div>
+      <div class="muted small">티어 ${p.tier} · 생산시간 ${p.prodTime}초 · 원료 ${p.matCost}개</div>
+      ${action}
+    </div>`;
+  }).join('');
+
+  rndList.innerHTML = html;
+}
+
+function renderMaterialShop(){
+  const shop = document.getElementById('materialShop');
+  const unitPrice = 45;
+  const discount = materialDiscount();
+  const price100 = Math.round(100*unitPrice*(1-discount));
+  const price300 = Math.round(300*unitPrice*0.92*(1-discount));
+  shop.innerHTML = `
+    <div class="card">
+      <div class="cardHead"><strong>현재 재고</strong><span>${Math.round(state.material)} / ${materialCap()}</span></div>
+      <div class="matBarOuter" style="height:8px;"><div class="matBarInner" style="width:${clamp(state.material/materialCap()*100,0,100)}%"></div></div>
+    </div>
+    <div class="shopItem">
+      <div><strong>원료 100개</strong><div class="muted small">소형 발주</div></div>
+      <button class="btn" ${state.cash<price100?'disabled':''} onclick="buyMaterial(100,${price100})">${formatMoney(price100)}</button>
+    </div>
+    <div class="shopItem">
+      <div><strong>원료 300개</strong><div class="muted small">대량 발주 (단가 할인)</div></div>
+      <button class="btn" ${state.cash<price300?'disabled':''} onclick="buyMaterial(300,${price300})">${formatMoney(price300)}</button>
+    </div>
+    <p class="muted small">💡 연구개발 탭에서 '원료 대량구매 할인'을 올리면 더 저렴하게 구매할 수 있어요.</p>
+  `;
+}
+
+function renderAll(){
+  renderTopbar();
+  renderOrders();
+  renderStaff();
+  renderRnd();
+  renderMaterialShop();
+}
+
+/* ===================== FACTORY CANVAS ===================== */
+let canvas, ctx;
+function setupCanvas(){
+  canvas = document.getElementById('factoryCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.width = CANVAS_W+'px';
+  canvas.style.height = CANVAS_H+'px';
+  canvas.width = CANVAS_W*dpr;
+  canvas.height = CANVAS_H*dpr;
+  ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  canvas.addEventListener('click', onCanvasClick);
+}
+function onCanvasClick(e){
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX-rect.left) * (CANVAS_W/rect.width);
+  const y = (e.clientY-rect.top) * (CANVAS_H/rect.height);
+  const col = Math.floor(x/(TILE+GAP));
+  const row = Math.floor(y/(TILE+GAP));
+  if(col<0||col>=COLS||row<0||row>=ROWS) return;
+  const idx = row*COLS+col;
+  openSlotModal(idx);
+}
+function drawFactory(){
+  if(!ctx || !state) return;
+  ctx.clearRect(0,0,CANVAS_W,CANVAS_H);
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const idx = r*COLS+c;
+      const x = GAP + c*(TILE+GAP);
+      const y = GAP + r*(TILE+GAP);
+      drawSlot(x,y,state.slots[idx],idx);
+    }
+  }
+}
+function drawSlot(x,y,slot,idx){
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(!slot.unlocked){
+    ctx.fillStyle='#0a0b10'; ctx.fillRect(x,y,TILE,TILE);
+    ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(x+1,y+1,TILE-2,TILE-2);
+    ctx.font='22px sans-serif'; ctx.fillText('🔒', x+TILE/2, y+TILE/2-8);
+    ctx.font="9px 'Press Start 2P'"; ctx.fillStyle='#8b93a8';
+    ctx.fillText(formatShort(unlockCost(idx)), x+TILE/2, y+TILE-11);
+    return;
+  }
+  if(!slot.machineType){
+    ctx.fillStyle='#181c2a'; ctx.fillRect(x,y,TILE,TILE);
+    ctx.strokeStyle='#f4c430'; ctx.lineWidth=2; ctx.setLineDash([5,4]);
+    ctx.strokeRect(x+3,y+3,TILE-6,TILE-6);
+    ctx.setLineDash([]);
+    ctx.font='26px sans-serif'; ctx.fillStyle='#f4c430';
+    ctx.fillText('+', x+TILE/2, y+TILE/2-2);
+    return;
+  }
+  const machine = MACHINES[slot.machineType];
+  ctx.fillStyle='#0a0b10'; ctx.fillRect(x,y,TILE,TILE);
+  ctx.fillStyle = machine.color;
+  ctx.fillRect(x+6, y+18, TILE-12, TILE-30);
+  ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(x+6,y+18,TILE-12,TILE-30);
+  ctx.fillStyle='#d9c46a';
+  ctx.beginPath();
+  ctx.moveTo(x+16,y+18); ctx.lineTo(x+TILE-16,y+18); ctx.lineTo(x+TILE-24,y+6); ctx.lineTo(x+24,y+6);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#3a3a3a';
+  ctx.fillRect(x+TILE-12, y+TILE-26, 8, 10);
+  const blink = Math.floor(Date.now()/500)%2===0;
+  ctx.fillStyle = slot.blocked ? '#e94560' : (slot.product && blink ? '#6fcf5b' : '#2f3346');
+  ctx.fillRect(x+TILE-16, y+22, 6, 6);
+  if(slot.product){
+    const p = getProduct(slot.product);
+    ctx.font='18px sans-serif'; ctx.fillText(p.emoji, x+TILE/2, y+TILE/2+8);
+  } else {
+    ctx.font="8px 'Press Start 2P'"; ctx.fillStyle='#8b93a8';
+    ctx.fillText('설정필요', x+TILE/2, y+TILE/2+6);
+  }
+  if(slot.staffId){
+    ctx.font='11px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('👷', x+5, y+TILE-8);
+    ctx.textAlign='center';
+  }
+  const barY = y+TILE-6;
+  ctx.fillStyle='#000'; ctx.fillRect(x+4,barY,TILE-8,4);
+  ctx.fillStyle='#f4c430'; ctx.fillRect(x+4,barY,(TILE-8)*clamp(slot.progress,0,1),4);
+}
+function loop(){ drawFactory(); requestAnimationFrame(loop); }
+
+/* ===================== MODAL ===================== */
+function showModal(html){
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+function openSlotModal(idx){
+  const slot = state.slots[idx];
+  if(!slot.unlocked){
+    const cost = unlockCost(idx);
+    showModal(`
+      <h3>🔒 잠긴 구역</h3>
+      <p class="small muted">이 구역을 사용하려면 잠금을 해제하세요.</p>
+      <p class="price">해제 비용: ${formatMoney(cost)}</p>
+      <button class="btn primary" ${state.cash<cost?'disabled':''} onclick="unlockSlot(${idx})">잠금 해제</button>
+    `);
+    return;
+  }
+  if(!slot.machineType){
+    const rows = MACHINE_LIST.map(m=>`
+      <div class="shopItem">
+        <div><strong>${m.name}</strong> <span class="muted small">${'★'.repeat(m.tier)}</span>
+          <div class="muted small">속도 배율 ×${m.speedMult}</div>
+        </div>
+        <button class="btn" ${state.cash<m.cost?'disabled':''} onclick="buyMachine(${idx},'${m.id}')">${formatMoney(m.cost)}</button>
+      </div>`).join('');
+    showModal(`<h3>🏭 사출기 설치</h3>${rows}`);
+    return;
+  }
+  renderManageModal(idx);
+}
+function renderManageModal(idx){
+  const slot = state.slots[idx];
+  const machine = MACHINES[slot.machineType];
+  const availableProducts = PRODUCTS.filter(p=>state.unlockedProducts.includes(p.id) && p.tier<=machine.tier);
+  const productButtons = availableProducts.map(p=>`<button class="chip ${slot.product===p.id?'active':''}" onclick="setSlotProduct(${idx},'${p.id}')">${p.emoji} ${p.name}</button>`).join('');
+  const idleStaff = state.staff.filter(w=>w.assignedSlot===null || w.assignedSlot===idx);
+  const staffOptions = idleStaff.map(w=>`<option value="${w.id}" ${slot.staffId===w.id?'selected':''}>${w.name} (${'★'.repeat(w.skill)})</option>`).join('');
+  showModal(`
+    <h3>${machine.name} <span class="muted small">· ${idx+1}번 구역</span></h3>
+    <p class="muted small">생산 가능 제품:</p>
+    <div class="chipRow">${productButtons || '<span class="muted small">생산 가능한 제품이 없습니다. 연구개발에서 신제품을 개발하세요.</span>'}</div>
+    <p class="muted small" style="margin-top:12px;">담당 직원:</p>
+    <select onchange="assignStaffToSlot(${idx}, this.value)">
+      <option value="">미배치 (자동 가동, 속도 감소)</option>
+      ${staffOptions}
+    </select>
+    ${slot.product ? `<div class="progressRow"><span class="muted small">생산 진행률</span><div class="pbar"><div class="pbarFill" style="width:${Math.round(slot.progress*100)}%"></div></div></div>` : ''}
+    ${slot.blocked ? '<p class="warn small">⚠️ 원료 부족으로 가동이 멈췄습니다!</p>' : ''}
+    <button class="btn danger" style="margin-top:14px;" onclick="demolishSlot(${idx})">🔨 철거 (환급 ${formatMoney(Math.round(machine.cost*0.4))})</button>
+  `);
+}
+
+/* ===================== TABS & TOAST ===================== */
+function buildTabsUI(){
+  const nav = document.getElementById('tabs');
+  nav.innerHTML = TABS.map(t=>`<button class="tabBtn" data-key="${t.key}"><span class="ic">${t.icon}</span><span>${t.label}</span></button>`).join('');
+  nav.querySelectorAll('.tabBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>switchTab(btn.dataset.key));
+  });
+  switchTab('factory');
+}
+function switchTab(key){
+  state.activeTab = key;
+  document.querySelectorAll('.tabBtn').forEach(b=>b.classList.toggle('active', b.dataset.key===key));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+key));
+  renderAll();
+}
+function toast(msg){
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  container.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),300); }, 2600);
+  while(container.children.length>3) container.removeChild(container.firstChild);
+}
+
+/* ===================== INIT ===================== */
+function init(){
+  buildInitialState();
+  setupCanvas();
+  buildTabsUI();
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeModal(); });
+  document.getElementById('rerollBtn').addEventListener('click', rerollCandidates);
+  renderAll();
+  requestAnimationFrame(loop);
+  setInterval(simulate, 1000);
+  setTimeout(()=>toast('🏭 공장에 오신 것을 환영합니다! 빈 구역을 눌러 사출기를 설치하세요.'), 400);
+}
+init();
+</script>
+</body>
+</html>

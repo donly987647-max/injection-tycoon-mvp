@@ -505,7 +505,7 @@ func try_deliver() -> Dictionary:
 	if settle_ok:
 		delta = order.reward
 		balance += delta
-		reason = "전액 입금"
+		reason = "전액 입금."
 	else:
 		# Late / shortage / excess defects: apply order.penalty (−40% reward by default).
 		delta = -order.penalty
@@ -517,7 +517,7 @@ func try_deliver() -> Dictionary:
 			parts.append("수량 부족 (납품 불가)")
 		if excess_defects:
 			parts.append("불량 과다 (%.0f%% > %.0f%%)" % [defect_ratio * 100.0, EXCESS_DEFECT_RATIO * 100.0])
-		reason = ", ".join(parts)
+		reason = "페널티: %s." % ", ".join(parts)
 
 	var result := {
 		"title": "정산 — 성공" if settle_ok else "정산 — 실패",

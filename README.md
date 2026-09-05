@@ -18,6 +18,21 @@ export PATH="/workspace/tools/bin:$PATH"
 godot --version   # 4.7.2.stable.official
 ```
 
+
+## Play in browser (GitHub Pages)
+
+**HTTPS play URL:** https://donly987647-max.github.io/injection-tycoon-mvp/
+
+Web export is published from the `gh-pages` branch (`build/web/*`, Godot HTML5).  
+`variant/thread_support=false` so the build runs on GitHub Pages without COOP/COEP headers.
+
+Rebuild web locally:
+
+```bash
+/workspace/injection-tycoon-mvp/scripts/export_web.sh
+# then zip: python3 scripts/zip_web.py
+```
+
 ## Open / run
 
 1. Launch Godot 4.x
@@ -132,7 +147,7 @@ godot --headless --path /workspace/injection-tycoon-mvp \
 |-----------|----------|
 | Godot 4.7.2 | `/workspace/tools/bin/godot` |
 | OpenJDK 21 | `/usr/lib/jvm/java-21-openjdk-amd64` |
-| Android SDK | `/workspace/tools/android-sdk` (cmdline-tools, platform-tools, platforms;android-35, build-tools;35.0.0 + 35.0.1) |
+| Android SDK | `/workspace/tools/android-sdk` (cmdline-tools, platform-tools, platforms;android-35+36, build-tools;35.0.0 / 35.0.1 / 36.0.0) |
 | Export templates | `~/.local/share/godot/export_templates/4.7.2.stable/` (`android_debug.apk`, `android_release.apk`) |
 | Debug keystore | `android/debug.keystore` (alias `androiddebugkey`, store/key pass `android`) |
 | Export preset | `export_presets.cfg` preset name **Android** |
@@ -146,7 +161,7 @@ Editor settings (user account): `~/.config/godot/editor_settings-4.7.tres` point
    ```bash
    # unpack Google commandlinetools into $ANDROID_HOME/cmdline-tools/latest
    yes | sdkmanager --licenses
-   sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.1"
+   sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
    ```
 3. **Export templates** — download `Godot_v4.7.2-stable_export_templates.tpz` from the [4.7.2 release](https://github.com/godotengine/godot/releases/tag/4.7.2-stable), unzip into `~/.local/share/godot/export_templates/4.7.2.stable/` (must contain `android_debug.apk` and `version.txt` = `4.7.2.stable`).
 4. **Editor Settings → Export → Android** — set Java SDK Path + Android SDK Path; debug keystore as above (or leave blank to use editor defaults).

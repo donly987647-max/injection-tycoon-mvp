@@ -46,6 +46,9 @@ header#topbar{flex:0 0 auto;background:var(--panel);border-bottom:3px solid var(
 .statBox.mat .val{color:var(--orange);}
 .matBarOuter{height:5px;background:#000;margin-top:4px;border:1px solid var(--border);}
 .matBarInner{height:100%;background:var(--orange);}
+.dayBarOuter{height:5px;background:#000;margin-top:4px;border:1px solid var(--border);}
+.dayBarInner{height:100%;background:#7ec8e3;transition:width .25s linear;}
+.statBox.day .sub{font-size:8px;color:var(--muted);margin-top:2px;}
 
 /* ---------- Tabs ---------- */
 nav#tabs{flex:0 0 auto;display:flex;background:#0c0e15;border-bottom:3px solid var(--border);}
@@ -136,7 +139,10 @@ select{background:var(--panel-light);color:var(--text);border:2px solid var(--bo
     <div class="statGrid">
       <div class="statBox cash"><div class="lbl">💰 자금</div><div class="val pixel" id="statCash">0</div></div>
       <div class="statBox rep"><div class="lbl">⭐ 평판</div><div class="val pixel" id="statRep">0</div></div>
-      <div class="statBox day"><div class="lbl">📅 일차</div><div class="val pixel" id="statDay">1</div></div>
+      <div class="statBox day"><div class="lbl">📅 일차</div><div class="val pixel" id="statDay">1</div>
+        <div class="dayBarOuter" title="하루 진행"><div class="dayBarInner" id="dayBar" style="width:0%"></div></div>
+        <div class="sub" id="dayTickLabel">0/20</div>
+      </div>
       <div class="statBox mat"><div class="lbl">🧪 원료</div><div class="val pixel" id="statMaterial">0</div>
         <div class="matBarOuter"><div class="matBarInner" id="matBar" style="width:0%"></div></div>
       </div>
@@ -502,6 +508,9 @@ function renderTopbar(){
   document.getElementById('statCash').textContent = formatMoney(state.cash);
   document.getElementById('statRep').textContent = Math.round(state.reputation);
   document.getElementById('statDay').textContent = state.day;
+  const dayPct = clamp(state.tickInDay / DAY_TICKS * 100, 0, 100);
+  document.getElementById('dayBar').style.width = dayPct + '%';
+  document.getElementById('dayTickLabel').textContent = state.tickInDay + '/' + DAY_TICKS;
   document.getElementById('statMaterial').textContent = Math.round(state.material)+'/'+materialCap();
   document.getElementById('matBar').style.width = clamp(state.material/materialCap()*100,0,100)+'%';
 }

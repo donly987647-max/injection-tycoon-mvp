@@ -334,6 +334,10 @@ function saveGame(){
       nextOrderId,
       nextStaffId,
       nextCandidateId,
+      daySalaryCharged: daySalaryCharged|0,
+      daySalaryUnpaid: !!daySalaryUnpaid,
+      dayDeliveryIncome: dayDeliveryIncome|0,
+      dayRepDelta: dayRepDelta|0,
       saveVersion: 1,
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
@@ -380,6 +384,10 @@ function loadGame(){
     nextOrderId = data.nextOrderId;
     nextStaffId = data.nextStaffId;
     nextCandidateId = data.nextCandidateId;
+    daySalaryCharged = Number(data.daySalaryCharged)||0;
+    daySalaryUnpaid = !!data.daySalaryUnpaid;
+    dayDeliveryIncome = Number(data.dayDeliveryIncome)||0;
+    dayRepDelta = Number(data.dayRepDelta)||0;
     return true;
   }catch(e){
     return false;
@@ -938,7 +946,7 @@ function closeModal(){ document.getElementById('modalOverlay').classList.remove(
 function showDaySummary(s){
   closeModal();
   const unpaidTag = s.salaryUnpaid ? ' <span class="warn">미지급</span>' : '';
-  const repStr = (s.repDelta>0?'+':'') + Math.round(s.repDelta);
+  const r=Math.round(s.repDelta); const repStr = r===0 ? '±0' : (r>0?'+':'') + r;
   showModal(`
     <h3>Day ${s.endedDay} 마감</h3>
     <div class="card" style="margin-top:4px;">

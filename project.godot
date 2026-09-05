@@ -5,7 +5,7 @@ config_version=5
 
 [application]
 
-config/name="Injection Tycoon MVP"
+config/name="사출 타이쿤 MVP"
 config/description="Plastic injection factory tycoon — mobile MVP core loop"
 config/version="0.1.0"
 run/main_scene="res://scenes/main.tscn"

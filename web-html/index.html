@@ -257,6 +257,10 @@ const TABS = [
 
 /* ===================== STATE ===================== */
 const SAVE_KEY = 'injectionTycoonSave_v1';
+const ACCEPT_LINES = ['새 주문이에요!','납기 맞춰 주세요~','급한데 가능해요?','단골 할인…은 나중에!'];
+const DELIVER_LINES = ['잘 쓸게요!','품질 좋네요','또 부탁해요','제때라 감사해요'];
+function pickLine(arr){ return arr[(Math.random()*arr.length)|0]; }
+
 let state = null;
 let nextOrderId=1, nextStaffId=1, nextCandidateId=1;
 let daySalaryCharged=0, daySalaryUnpaid=false, dayDeliveryIncome=0, dayRepDelta=0;
@@ -424,6 +428,7 @@ function tryGenerateOrder(){
   if(state.orders.length >= maxOrders()) return;
   if(Math.random() > 0.5 + state.reputation/400) return;
   state.orders.push(makeOrderObject());
+  toast(pickLine(ACCEPT_LINES));
 }
 function deliverOrder(id){
   const order = state.orders.find(o=>o.id===id);
@@ -438,7 +443,7 @@ function deliverOrder(id){
   state.reputation = clamp(state.reputation + repGain, 0, 100);
   dayRepDelta += repGain;
   state.orders = state.orders.filter(o=>o.id!==id);
-  toast(`납품 완료 · +${formatMoney(order.reward)}`);
+  toast(`${pickLine(DELIVER_LINES)} · +${formatMoney(order.reward)}`);
   punchCash();
   saveGame();
   renderAll();
@@ -919,9 +924,8 @@ function drawSlot(x,y,slot,idx){
     ctx.fillText('설정필요', x+TILE/2, y+TILE/2+6);
   }
   if(slot.staffId){
-    ctx.font='11px sans-serif'; ctx.textAlign='left';
-    ctx.fillText('👷', x+5, y+TILE-8);
-    ctx.textAlign='center';
+    ctx.font='18px sans-serif';
+    ctx.fillText('👷', x+TILE/2, y+TILE-14);
   }
   const barY = y+TILE-6;
   ctx.fillStyle='#000'; ctx.fillRect(x+4,barY,TILE-8,4);

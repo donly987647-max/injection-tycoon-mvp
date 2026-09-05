@@ -19,7 +19,7 @@ func _ready() -> void:
 func show_result(result: Dictionary) -> void:
 	# Mash-safe: while already open, refresh content but ignore re-entrant OK spam.
 	_closing = false
-	_title.text = str(result.get("title", "Notice"))
+	_title.text = str(result.get("title", "알림"))
 	_body.text = str(result.get("body", ""))
 	visible = true
 	mouse_filter = Control.MOUSE_FILTER_STOP

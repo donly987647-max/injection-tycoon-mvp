@@ -83,7 +83,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-text = "RESIN"
+text = "원료"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -119,8 +119,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = 8.0
-text = "INJECTION
-LINE 1"
+text = "사출 라인 1"
 horizontal_alignment = 1
 vertical_alignment = 0
 
@@ -155,7 +154,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-text = "MOLD"
+text = "금형"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -190,7 +189,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-text = "BIN"
+text = "양품함"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -206,7 +205,7 @@ offset_left = 16.0
 offset_top = -72.0
 offset_right = -16.0
 offset_bottom = -44.0
-text = "Idle"
+text = "대기"
 horizontal_alignment = 1
 
 [node name="HeatBar" type="ProgressBar" parent="Factory"]
@@ -255,7 +254,7 @@ theme_override_font_sizes/font_size = 26
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Defect  8%"
+text = "불량  8%"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 20
 
@@ -264,14 +263,14 @@ unique_name_in_owner = true
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Cycle 0"
+text = "사이클 0"
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 18
 
 [node name="HudOrder" type="Label" parent="HUD/HudMargin/HudV"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "No active order"
+text = "활성 주문 없음"
 autowrap_mode = 3
 theme_override_font_sizes/font_size = 16
 
@@ -279,7 +278,7 @@ theme_override_font_sizes/font_size = 16
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-text = "Resin 250"
+text = "원료 250"
 theme_override_font_sizes/font_size = 14
 
 [node name="Bottom" type="PanelContainer" parent="."]
@@ -306,7 +305,7 @@ theme_override_constants/separation = 8
 [node name="HelpLabel" type="Label" parent="Bottom/BottomMargin/BottomV"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Open Orders → Accept → Swap mold → Inject → Cycle → Deliver"
+text = "주문 열기 → 수주 → 금형 → 교체 → 사출 → 사이클 → 납품"
 autowrap_mode = 3
 theme_override_font_sizes/font_size = 13
 
@@ -318,25 +317,25 @@ theme_override_constants/separation = 8
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Orders"
+text = "주문"
 
 [node name="BtnMolds" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Molds"
+text = "금형"
 
 [node name="BtnInject" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Inject"
+text = "사출"
 
 [node name="BtnStop" type="Button" parent="Bottom/BottomMargin/BottomV/Row1"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Stop"
+text = "정지"
 
 [node name="Row2" type="HBoxContainer" parent="Bottom/BottomMargin/BottomV"]
 layout_mode = 2
@@ -346,25 +345,25 @@ theme_override_constants/separation = 8
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Cycle"
+text = "사이클"
 
 [node name="BtnDeliver" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Deliver"
+text = "납품"
 
 [node name="BtnBuy" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Buy resin"
+text = "원료 구매"
 
 [node name="BtnReset" type="Button" parent="Bottom/BottomMargin/BottomV/Row2"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Reset"
+text = "초기화"
 
 [node name="OrderBoard" type="PanelContainer" parent="."]
 unique_name_in_owner = true
@@ -397,18 +396,18 @@ layout_mode = 2
 [node name="Title" type="Label" parent="OrderBoard/Margin/VBox/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Order Board"
+text = "주문 보드"
 theme_override_font_sizes/font_size = 22
 
 [node name="Close" type="Button" parent="OrderBoard/Margin/VBox/Header"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-text = "Close"
+text = "닫기"
 
 [node name="Hint" type="Label" parent="OrderBoard/Margin/VBox"]
 layout_mode = 2
-text = "item · qty · deadline · reward · margin_tag (bulk|special)
-Near-deadline (≤1 cycle) cannot be accepted."
+text = "품목 · 수량 · 기한 · 보상 · 마진(대량|특수)
+기한 임박(≤1 사이클)은 수주할 수 없습니다."
 autowrap_mode = 3
 
 [node name="Scroll" type="ScrollContainer" parent="OrderBoard/Margin/VBox"]
@@ -451,13 +450,13 @@ layout_mode = 2
 [node name="Title" type="Label" parent="MoldPanel/Margin/VBox/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Mold Swap"
+text = "금형 교체"
 theme_override_font_sizes/font_size = 22
 
 [node name="Close" type="Button" parent="MoldPanel/Margin/VBox/Header"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-text = "Close"
+text = "닫기"
 
 [node name="Scroll" type="ScrollContainer" parent="MoldPanel/Margin/VBox"]
 layout_mode = 2
@@ -505,7 +504,7 @@ theme_override_constants/margin_bottom = 4
 
 [node name="Title" type="Label" parent="Sheet/Center/Card/VBox"]
 layout_mode = 2
-text = "Notice"
+text = "알림"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 24
 
@@ -518,7 +517,7 @@ horizontal_alignment = 1
 [node name="Ok" type="Button" parent="Sheet/Center/Card/VBox"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-text = "OK"
+text = "확인"
 
 [node name="Toast" type="Control" parent="."]
 unique_name_in_owner = true

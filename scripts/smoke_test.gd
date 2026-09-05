@@ -39,25 +39,25 @@ func _check(cond: bool, msg: String) -> void:
 func _test_order_fails() -> void:
 	print("-- order fail branches")
 	var near := GameState.debug_push_order({
-		"item": "Bottle Cap", "quantity": 10, "deadline": GameState.cycle + 1,
+		"item": "병 마개", "quantity": 10, "deadline": GameState.cycle + 1,
 		"reward": 100, "margin_tag": "bulk", "penalty": 40,
 	})
 	var r: Dictionary = GameState.try_accept_order(near.id)
 	_check(r.get("ok") == false, "accept fail when deadline <= 1 cycle")
 	var good := GameState.debug_push_order({
-		"item": "Bottle Cap", "quantity": 20, "deadline": GameState.cycle + 120,
+		"item": "병 마개", "quantity": 20, "deadline": GameState.cycle + 120,
 		"reward": 150, "margin_tag": "bulk", "penalty": 0,
 	})
 	r = GameState.try_accept_order(good.id)
 	_check(r.get("ok") == true, "accept when slot free and not near-deadline")
 	var extra := GameState.debug_push_order({
-		"item": "Phone Case", "quantity": 30, "deadline": GameState.cycle + 90,
+		"item": "폰케이스", "quantity": 30, "deadline": GameState.cycle + 90,
 		"reward": 500, "margin_tag": "special", "penalty": 200,
 	})
 	r = GameState.try_accept_order(extra.id)
 	_check(r.get("ok") == false, "accept fail when slots full")
 	var near2 := GameState.debug_push_order({
-		"item": "Phone Case", "quantity": 10, "deadline": GameState.cycle + 0,
+		"item": "폰케이스", "quantity": 10, "deadline": GameState.cycle + 0,
 		"reward": 100, "margin_tag": "special", "penalty": 40,
 	})
 	r = GameState.try_reject_order(near2.id)
@@ -117,7 +117,7 @@ func _test_happy_path() -> void:
 	print("-- happy path to settlement save")
 	if GameState.active_order == null:
 		var o := GameState.debug_push_order({
-			"item": "Bottle Cap", "quantity": 20, "deadline": GameState.cycle + 200,
+			"item": "병 마개", "quantity": 20, "deadline": GameState.cycle + 200,
 			"reward": 150, "margin_tag": "bulk", "penalty": 0,
 		})
 		GameState.try_accept_order(o.id)
@@ -168,7 +168,7 @@ func _test_delivery_fail_settlement() -> void:
 	var reward := 400
 	var expected_pen := GameState.late_penalty_amount(reward)  ## 160
 	var late := GameState.debug_push_order({
-		"item": "Bottle Cap", "quantity": 80, "deadline": GameState.cycle + 2,
+		"item": "병 마개", "quantity": 80, "deadline": GameState.cycle + 2,
 		"reward": reward, "margin_tag": "bulk", "penalty": expected_pen,
 	})
 	var acc: Dictionary = GameState.try_accept_order(late.id)
@@ -206,7 +206,7 @@ func _test_mash_guards() -> void:
 	GameState.rng.seed = 42
 	# Rapid accept same order: only first succeeds
 	var o := GameState.debug_push_order({
-		"item": "Bottle Cap", "quantity": 10, "deadline": GameState.cycle + 100,
+		"item": "병 마개", "quantity": 10, "deadline": GameState.cycle + 100,
 		"reward": 100, "margin_tag": "bulk", "penalty": 40,
 	})
 	var r1: Dictionary = GameState.try_accept_order(o.id)
@@ -220,7 +220,7 @@ func _test_mash_guards() -> void:
 	# Sheet-open blocks further accepts/swaps/delivers
 	GameState.sheet_open = true
 	var extra := GameState.debug_push_order({
-		"item": "Phone Case", "quantity": 5, "deadline": GameState.cycle + 90,
+		"item": "폰케이스", "quantity": 5, "deadline": GameState.cycle + 90,
 		"reward": 50, "margin_tag": "special", "penalty": 20,
 	})
 	# Clear slot for a fair "blocked by sheet" check: temporarily null then restore
@@ -264,7 +264,7 @@ func _test_save_load_roundtrip() -> void:
 	GameState.reset_game()
 	GameState.rng.seed = 7
 	var o := GameState.debug_push_order({
-		"item": "Phone Case", "quantity": 30, "deadline": GameState.cycle + 90,
+		"item": "폰케이스", "quantity": 30, "deadline": GameState.cycle + 90,
 		"reward": 500, "margin_tag": "special", "penalty": 200,
 	})
 	GameState.try_accept_order(o.id)
@@ -333,7 +333,7 @@ func _test_force_quit_recovery() -> void:
 	GameState.reset_game()
 	GameState.rng.seed = 99
 	var o := GameState.debug_push_order({
-		"item": "Bottle Cap", "quantity": 20, "deadline": GameState.cycle + 120,
+		"item": "병 마개", "quantity": 20, "deadline": GameState.cycle + 120,
 		"reward": 150, "margin_tag": "bulk", "penalty": 0,
 	})
 	GameState.try_accept_order(o.id)

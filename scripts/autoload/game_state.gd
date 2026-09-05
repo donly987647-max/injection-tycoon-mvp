@@ -86,15 +86,15 @@ func _new_game() -> void:
 func _default_molds() -> Array[MoldData]:
 	var list: Array[MoldData] = []
 	list.append(MoldData.from_dict({
-		"id": "mold_cap", "name": "Bottle Cap Mold", "item": "Bottle Cap",
+		"id": "mold_cap", "name": "병 마개 금형", "item": "병 마개",
 		"swap_time": MOLD_SWAP_CYCLES, "owned": true, "material_per_unit": 1, "heat_per_cycle": 8.0,
 	}))
 	list.append(MoldData.from_dict({
-		"id": "mold_case", "name": "Phone Case Mold", "item": "Phone Case",
+		"id": "mold_case", "name": "폰케이스 금형", "item": "폰케이스",
 		"swap_time": MOLD_SWAP_CYCLES, "owned": true, "material_per_unit": 1, "heat_per_cycle": 10.0,
 	}))
 	list.append(MoldData.from_dict({
-		"id": "mold_toy", "name": "Toy Brick Mold", "item": "Toy Brick",
+		"id": "mold_toy", "name": "브릭 금형", "item": "브릭",
 		"swap_time": MOLD_SWAP_CYCLES, "owned": false, "material_per_unit": 1, "heat_per_cycle": 9.0,
 	}))
 	return list
@@ -104,7 +104,7 @@ func _fixed_catalog() -> Array[Dictionary]:
 	return [
 		{
 			"key": "tutorial",
-			"item": "Bottle Cap",
+			"item": "병 마개",
 			"quantity": 20,
 			"lead": 120,
 			"reward": 150,
@@ -113,7 +113,7 @@ func _fixed_catalog() -> Array[Dictionary]:
 		},
 		{
 			"key": "bulk",
-			"item": "Bottle Cap",
+			"item": "병 마개",
 			"quantity": 100,
 			"lead": 180,
 			"reward": 300,
@@ -122,7 +122,7 @@ func _fixed_catalog() -> Array[Dictionary]:
 		},
 		{
 			"key": "special",
-			"item": "Phone Case",
+			"item": "폰케이스",
 			"quantity": 30,
 			"lead": 90,
 			"reward": 500,
@@ -160,6 +160,39 @@ func _refill_board() -> void:
 		})
 		_order_seq += 1
 		board_orders.append(o)
+
+
+## Map legacy English catalog strings → Korean (old saves).
+func _localize_item(item: String) -> String:
+	match item:
+		"Bottle Cap":
+			return "병 마개"
+		"Phone Case":
+			return "폰케이스"
+		"Toy Brick":
+			return "브릭"
+		_:
+			return item
+
+func _localize_mold_name(n: String) -> String:
+	match n:
+		"Bottle Cap Mold":
+			return "병 마개 금형"
+		"Phone Case Mold":
+			return "폰케이스 금형"
+		"Toy Brick Mold":
+			return "브릭 금형"
+		_:
+			return n
+
+func _migrate_locale_strings() -> void:
+	for m in molds:
+		m.name = _localize_mold_name(m.name)
+		m.item = _localize_item(m.item)
+	for o in board_orders:
+		o.item = _localize_item(o.item)
+	if active_order:
+		active_order.item = _localize_item(active_order.item)
 
 # ---------------------------------------------------------------------------
 # Queries
@@ -203,8 +236,8 @@ func current_mold() -> MoldData:
 
 func order_summary() -> String:
 	if active_order == null:
-		return "No active order"
-	return "%s  %s  due C%d  $%d  [%s]" % [
+		return "활성 주문 없음"
+	return "%s  %s  기한 C%d  $%d  [%s]" % [
 		active_order.item,
 		active_order.progress_text(),
 		active_order.deadline,
@@ -221,25 +254,25 @@ func hud_defect_text() -> String:
 
 func try_accept_order(order_id: String) -> Dictionary:
 	if _accepting or _settling:
-		return {"ok": false, "sheet": false, "message": "Busy."}
+		return {"ok": false, "sheet": false, "message": "처리 중."}
 	if sheet_open:
-		return {"ok": false, "sheet": false, "message": "Close the sheet first."}
+		return {"ok": false, "sheet": false, "message": "시트를 먼저 닫아주세요."}
 	var order := _find_board_order(order_id)
 	if order == null:
-		return _fail("Order not found on board.")
+		return _fail("주문 보드에 없는 주문입니다.")
 	if not slot_free():
-		return _fail("Order slot full. Finish or settle the current job first.")
+		return _fail("주문 슬롯이 가득 찬습니다. 현재 작업을 먼저 끝내세요.")
 	if order.is_near_deadline(cycle):
-		return _fail("Too close to deadline (≤ %d cycle). Reject or skip." % NEAR_DEADLINE_CYCLES)
+		return _fail("기한이 너무 임박합니다 (≤ %d 사이클). 거절하거나 건너뛰세요." % NEAR_DEADLINE_CYCLES)
 	_accepting = true
 	active_order = order
 	active_order.accepted = true
 	_remove_board(order_id)
 	_refill_board()
 	_changed()
-	var out := _ok_sheet("Order accepted", {
-		"title": "Order Accepted",
-		"body": "Item: %s\nQty: %d good units\nDeadline: cycle %d (%d left)\nReward: $%d  Penalty: $%d\nTag: %s\n\nSwap to the matching mold, then inject." % [
+	var out := _ok_sheet("주문 수주", {
+		"title": "주문 수주",
+		"body": "품목: %s\n수량(양품): %d\n기한: C%d (%d 남음)\n보상: $%d  페널티: $%d\n마진: %s\n\n맞는 금형으로 교체한 뒤 사출하세요." % [
 			order.item, order.quantity, order.deadline, order.remaining_cycles(cycle),
 			order.reward, order.penalty, order.margin_tag_str(),
 		],
@@ -250,18 +283,18 @@ func try_accept_order(order_id: String) -> Dictionary:
 
 func try_reject_order(order_id: String) -> Dictionary:
 	if not can_interact():
-		return {"ok": false, "sheet": false, "message": "Busy."}
+		return {"ok": false, "sheet": false, "message": "처리 중."}
 	var order := _find_board_order(order_id)
 	if order == null:
-		return _fail("Order not found on board.")
+		return _fail("주문 보드에 없는 주문입니다.")
 	var near := order.is_near_deadline(cycle)
 	_remove_board(order_id)
 	_refill_board()
 	_changed()
 	if near:
-		return _fail("Rejected a near-deadline job (≤ %d cycle). Slot stays free." % NEAR_DEADLINE_CYCLES)
-	toast("Order declined.", "info")
-	return {"ok": true, "sheet": false, "message": "Order declined."}
+		return _fail("기한 임박 주문을 거절했습니다 (≤ %d 사이클). 슬롯은 비어 있습니다." % NEAR_DEADLINE_CYCLES)
+	toast("주문을 거절했습니다.", "info")
+	return {"ok": true, "sheet": false, "message": "주문을 거절했습니다."}
 
 func _remove_board(order_id: String) -> void:
 	var next: Array[OrderData] = []
@@ -282,29 +315,29 @@ func _find_board_order(order_id: String) -> OrderData:
 
 func try_start_swap(mold_id: String) -> Dictionary:
 	if _swap_starting or _settling:
-		return {"ok": false, "sheet": false, "message": "Busy."}
+		return {"ok": false, "sheet": false, "message": "처리 중."}
 	if sheet_open:
-		return {"ok": false, "sheet": false, "message": "Close the sheet first."}
+		return {"ok": false, "sheet": false, "message": "시트를 먼저 닫아주세요."}
 	var mold := get_mold(mold_id)
 	if mold == null:
-		return _fail("Unknown mold.")
+		return _fail("알 수 없는 금형입니다.")
 	if not mold.owned:
-		return _fail("Mold not owned: %s. (Locked in MVP — no R&D.)" % mold.name)
+		return _fail("보유하지 않은 금형입니다: %s. (MVP — R&D 없음.)" % mold.name)
 	if line.is_running():
-		return _fail("Line is running. Stop injection before swapping molds.")
+		return _fail("라인 가동 중에는 교체할 수 없습니다. 사출을 먼저 정지하세요.")
 	if line.status == LineState.Status.SWAPPING:
-		return _fail("Already swapping a mold.")
+		return _fail("이미 금형을 교체 중입니다.")
 	if line.current_mold_id == mold_id:
-		toast("That mold is already installed.", "info")
-		return {"ok": true, "sheet": false, "message": "Already installed."}
+		toast("이미 장착된 금형입니다.", "info")
+		return {"ok": true, "sheet": false, "message": "이미 장착된 금형입니다."}
 	_swap_starting = true
 	line.status = LineState.Status.SWAPPING
 	line.target_mold_id = mold_id
 	line.swap_remaining = mold.swap_time
 	_changed()
-	toast("Swapping to %s (%d cycle)." % [mold.name, mold.swap_time], "info")
+	toast("%s(으)로 교체 중 (%d 사이클)." % [mold.name, mold.swap_time], "info")
 	_swap_starting = false
-	return {"ok": true, "sheet": false, "message": "Swap started."}
+	return {"ok": true, "sheet": false, "message": "교체 시작."}
 
 func _complete_swap() -> void:
 	var mold := get_mold(line.target_mold_id)
@@ -314,9 +347,9 @@ func _complete_swap() -> void:
 	line.status = LineState.Status.IDLE
 	line.heat = maxf(line.heat - HEAT_COOL_PER_CYCLE, 0.0)
 	var name := mold.name if mold else line.current_mold_id
-	_ok_sheet("Mold swapped", {
-		"title": "Mold Swap Complete",
-		"body": "%s is installed.\nLine is idle — ready to inject." % name,
+	_ok_sheet("금형 교체 완료", {
+		"title": "금형 교체 완료",
+		"body": "%s이(가) 장착되었습니다.\n라인 대기 — 사출 가능." % name,
 		"kind": "mold_swap",
 	})
 
@@ -326,41 +359,41 @@ func _complete_swap() -> void:
 
 func try_start_injection() -> Dictionary:
 	if active_order == null:
-		return _fail("No active order. Accept a job first.")
+		return _fail("활성 주문이 없습니다. 먼저 수주하세요.")
 	if line.status == LineState.Status.SWAPPING:
-		return _fail("Line is swapping a mold.")
+		return _fail("금형 교체 중입니다.")
 	if line.is_running():
-		return _fail("Line is already injecting.")
+		return _fail("이미 사출 중입니다.")
 	var mold := current_mold()
 	if mold == null:
-		return _fail("No mold installed. Swap a mold first.")
+		return _fail("금형이 없습니다. 먼저 금형을 교체하세요.")
 	if mold.item != active_order.item:
-		return _fail("Wrong mold. Need %s, have %s." % [active_order.item, mold.item])
+		return _fail("금형이 맞지 않습니다. 필요 %s, 현재 %s." % [active_order.item, mold.item])
 	if materials < mold.material_per_unit * UNITS_PER_CYCLE:
-		return _fail("Material shortage. Buy resin or wait — cannot start.")
+		return _fail("원료가 부족합니다. 원료를 구매하세요.")
 	if line.heat >= line.max_heat:
-		return _fail("Line overheated. Cool down before injecting.")
+		return _fail("과열입니다. 냉각 후 사출하세요.")
 	line.status = LineState.Status.RUNNING
 	line.units_this_run = 0
 	_changed()
-	toast("Injection started.", "info")
-	return {"ok": true, "sheet": false, "message": "Injection started."}
+	toast("사출을 시작했습니다.", "info")
+	return {"ok": true, "sheet": false, "message": "사출을 시작했습니다."}
 
 func try_stop_injection() -> Dictionary:
 	if not line.is_running():
-		return _fail("Line is not injecting.")
+		return _fail("사출 중이 아닙니다.")
 	line.status = LineState.Status.IDLE
 	_changed()
-	toast("Injection stopped.", "info")
-	return {"ok": true, "sheet": false, "message": "Stopped."}
+	toast("사출을 정지했습니다.", "info")
+	return {"ok": true, "sheet": false, "message": "정지됨."}
 
 func buy_materials(amount: int = 80, cost: int = 80) -> Dictionary:
 	if balance < cost:
-		return _fail("Not enough cash to buy resin ($%d)." % cost)
+		return _fail("원료를 살 잔고가 부족합니다 ($%d)." % cost)
 	balance -= cost
 	materials += amount
 	_changed()
-	toast("Bought %d resin for $%d." % [amount, cost], "info")
+	toast("원료 %d개를 $%d에 구매했습니다." % [amount, cost], "info")
 	return {"ok": true, "sheet": false}
 
 # ---------------------------------------------------------------------------
@@ -390,7 +423,7 @@ func advance_cycle() -> void:
 			kept.append(o)
 	board_orders = kept
 	if dropped.size() > 0:
-		toast("%d board order(s) expired." % dropped.size(), "warn")
+		toast("보드 주문 %d건이 만료되었습니다." % dropped.size(), "warn")
 	_refill_board()
 	cycle_advanced.emit(cycle)
 	_changed()
@@ -398,12 +431,12 @@ func advance_cycle() -> void:
 func _inject_tick() -> void:
 	var mold := current_mold()
 	if mold == null:
-		_fail_stop("Injection stopped: no mold.")
+		_fail_stop("금형 없음 — 사출 정지.")
 		return
 	var shots := UNITS_PER_CYCLE
 	var need := mold.material_per_unit * shots
 	if materials < need:
-		_fail_stop("Material shortage — injection stopped.")
+		_fail_stop("원료 부족 — 사출 정지.")
 		return
 	materials -= need
 	var good := 0
@@ -420,12 +453,12 @@ func _inject_tick() -> void:
 	line.heat += mold.heat_per_cycle
 	if line.heat >= line.max_heat:
 		line.heat = line.max_heat
-		_fail_stop("Overheat — injection stopped. Cool the line.")
+		_fail_stop("과열 — 사출 정지. 라인을 냉각하세요.")
 		return
 	# Auto-stop if order already filled (player still must deliver)
 	if active_order and active_order.good_units_produced >= active_order.quantity:
 		line.status = LineState.Status.IDLE
-		toast("Quota met. Deliver before the deadline.", "info")
+		toast("목표 수량 도달. 기한 전에 납품하세요.", "info")
 
 func _fail_stop(msg: String) -> void:
 	line.status = LineState.Status.COOLING
@@ -439,13 +472,13 @@ func _fail_stop(msg: String) -> void:
 
 func try_deliver() -> Dictionary:
 	if _settling:
-		return {"ok": false, "sheet": false, "message": "Already settling."}
+		return {"ok": false, "sheet": false, "message": "이미 정산 중."}
 	if sheet_open:
-		return {"ok": false, "sheet": false, "message": "Close the sheet first."}
+		return {"ok": false, "sheet": false, "message": "시트를 먼저 닫아주세요."}
 	if active_order == null:
-		return _fail("No active order to deliver.")
+		return _fail("납품할 활성 주문이 없습니다.")
 	if line.is_running() or line.status == LineState.Status.SWAPPING:
-		return _fail("Stop the line before delivering.")
+		return _fail("납품 전에 라인을 정지하세요.")
 	_settling = true
 	var order := active_order
 	var on_time := cycle <= order.deadline
@@ -456,14 +489,14 @@ func try_deliver() -> Dictionary:
 
 	var delivery_ok := on_time and qty_ok
 	if delivery_ok:
-		toast("Delivery accepted.", "info")
+		toast("납품 완료.", "info")
 	else:
 		var why: PackedStringArray = []
 		if not on_time:
-			why.append("late (C%d > C%d)" % [cycle, order.deadline])
+			why.append("기한 초과 (C%d > C%d)" % [cycle, order.deadline])
 		if not qty_ok:
-			why.append("short %d/%d good" % [order.good_units_produced, order.quantity])
-		toast("Delivery failed: %s." % ", ".join(why), "fail")
+			why.append("양품 부족 %d/%d" % [order.good_units_produced, order.quantity])
+		toast("납품 실패: %s" % ", ".join(why), "fail")
 
 	# Settlement
 	var settle_ok := delivery_ok and not excess_defects
@@ -472,22 +505,22 @@ func try_deliver() -> Dictionary:
 	if settle_ok:
 		delta = order.reward
 		balance += delta
-		reason = "Paid in full."
+		reason = "전액 입금"
 	else:
 		# Late / shortage / excess defects: apply order.penalty (−40% reward by default).
 		delta = -order.penalty
 		balance += delta  # may go negative in MVP — visible fail
 		var parts: PackedStringArray = []
 		if not on_time:
-			parts.append("late (−%d%% reward)" % int(LATE_PENALTY_RATIO * 100.0))
+			parts.append("기한 초과 (−보상 %d%%)" % int(LATE_PENALTY_RATIO * 100.0))
 		if not qty_ok:
-			parts.append("short quantity (no delivery)")
+			parts.append("수량 부족 (납품 불가)")
 		if excess_defects:
-			parts.append("excess defects (%.0f%% > %.0f%%)" % [defect_ratio * 100.0, EXCESS_DEFECT_RATIO * 100.0])
-		reason = "Penalty for %s." % ", ".join(parts)
+			parts.append("불량 과다 (%.0f%% > %.0f%%)" % [defect_ratio * 100.0, EXCESS_DEFECT_RATIO * 100.0])
+		reason = ", ".join(parts)
 
 	var result := {
-		"title": "Settlement — Success" if settle_ok else "Settlement — Failed",
+		"title": "정산 — 성공" if settle_ok else "정산 — 실패",
 		"ok": settle_ok,
 		"delivery_ok": delivery_ok,
 		"kind": "settlement",
@@ -508,11 +541,11 @@ func _settlement_body(
 		order: OrderData, delivery_ok: bool, settle_ok: bool,
 		on_time: bool, qty_ok: bool, excess_defects: bool,
 		defect_ratio: float, delta: int, reason: String) -> String:
-	return "Item: %s\nGood: %d / %d\nDefects: %d (%.0f%%)\nDeadline: C%d  Now: C%d  %s\n\n%s\nCash %s$%d\nBalance: $%d" % [
+	return "품목: %s\n양품: %d / %d\n불량: %d (%.0f%%)\n기한: C%d  현재: C%d  %s\n\n%s\n현금 %s$%d\n잔고: $%d" % [
 		order.item,
 		order.good_units_produced, order.quantity,
 		order.defect_units_produced, defect_ratio * 100.0,
-		order.deadline, cycle, "ON TIME" if on_time else "LATE",
+		order.deadline, cycle, "기한 내" if on_time else "지연",
 		reason,
 		"+" if delta >= 0 else "", delta,
 		balance,
@@ -598,6 +631,7 @@ func load_game() -> bool:
 		active_order = null
 	if board_orders.is_empty():
 		_refill_board()
+	_migrate_locale_strings()
 	return true
 
 ## Simulate app restart after force-quit: wipe RAM, then load disk (or new game).
@@ -639,7 +673,7 @@ func reset_game() -> void:
 	_new_game()
 	save_game()
 	_changed()
-	toast("New factory started.", "info")
+	toast("초기화되었습니다.", "info")
 
 # ---------------------------------------------------------------------------
 # UI helpers

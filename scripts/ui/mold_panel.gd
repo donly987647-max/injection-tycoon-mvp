@@ -21,8 +21,8 @@ func refresh() -> void:
 	var info := Label.new()
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var cur := GameState.current_mold()
-	info.text = "Installed: %s\nLine: %s" % [
-		cur.name if cur else "(none)",
+	info.text = "장착: %s\n라인: %s" % [
+		cur.name if cur else "(없음)",
 		GameState.line.status_str(),
 	]
 	_list.add_child(info)
@@ -45,19 +45,19 @@ func _row(mold: MoldData) -> Control:
 	var v := VBoxContainer.new()
 	box.add_child(v)
 	var title := Label.new()
-	var lock := "" if mold.owned else "  🔒 NOT OWNED"
-	var on := "  ● INSTALLED" if GameState.line.current_mold_id == mold.id else ""
+	var lock := "" if mold.owned else "  🔒 미보유"
+	var on := "  ● 장착됨" if GameState.line.current_mold_id == mold.id else ""
 	title.text = "%s  → %s%s%s" % [mold.name, mold.item, lock, on]
 	title.add_theme_font_size_override("font_size", 16)
 	v.add_child(title)
 	var meta := Label.new()
-	meta.text = "swap %d cycle   resin %d/unit   heat +%.0f/cycle" % [
+	meta.text = "교체 %d사이클   원료 %d/개   열 +%.0f/사이클" % [
 		mold.swap_time, mold.material_per_unit, mold.heat_per_cycle,
 	]
 	meta.modulate = Color(0.8, 0.85, 0.9)
 	v.add_child(meta)
 	var btn := Button.new()
-	btn.text = "Swap in" if mold.owned else "Locked"
+	btn.text = "교체" if mold.owned else "잠김"
 	btn.custom_minimum_size = Vector2(0, 44)
 	var busy := not GameState.can_interact() or GameState.is_swapping()
 	btn.disabled = (not mold.owned) or busy

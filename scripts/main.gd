@@ -140,14 +140,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _refresh() -> void:
 	hud_order.text = GameState.order_summary()
-	hud_defect.text = "Defect  %s" % GameState.hud_defect_text()
+	hud_defect.text = "불량  %s" % GameState.hud_defect_text()
 	hud_balance.text = "$%d" % GameState.balance
 	# Cycle / Resin stay off the mobile HUD strip (nodes remain for debug if unhidden).
-	hud_cycle.text = "Cycle %d" % GameState.cycle
-	hud_mat.text = "Resin %d" % GameState.materials
+	hud_cycle.text = "사이클 %d" % GameState.cycle
+	hud_mat.text = "원료 %d" % GameState.materials
 	var mold := GameState.current_mold()
-	var mold_name := mold.name if mold else "No mold"
-	line_status.text = "%s  |  %s  |  heat %.0f/%.0f" % [
+	var mold_name := mold.name if mold else "금형 없음"
+	line_status.text = "%s  |  %s  |  열 %.0f/%.0f" % [
 		GameState.line.status_str(), mold_name, GameState.line.heat, GameState.line.max_heat,
 	]
 	heat_bar.max_value = GameState.line.max_heat
@@ -174,20 +174,20 @@ func _refresh() -> void:
 		help_label.text = _hint_for_order()
 	else:
 		output_bin.color = COL_BIN_EMPTY
-		help_label.text = "Open Orders → Accept → Molds → Swap → Inject → Cycle → Deliver"
+		help_label.text = "주문 열기 → 수주 → 금형 → 교체 → 사출 → 사이클 → 납품"
 
 func _hint_for_order() -> String:
 	var o := GameState.active_order
 	var mold := GameState.current_mold()
 	if GameState.line.status == LineState.Status.SWAPPING:
-		return "Swapping… advance cycles (%d left)." % GameState.line.swap_remaining
+		return "교체 중… 사이클을 진행하세요 (%d 남음)." % GameState.line.swap_remaining
 	if mold == null or mold.item != o.item:
-		return "Swap to the %s mold, then Inject." % o.item
+		return "%s 금형으로 교체한 뒤 사출하세요." % o.item
 	if o.good_units_produced >= o.quantity:
-		return "Quota met. Deliver before cycle %d." % o.deadline
+		return "목표 수량 도달. C%d 전에 납품하세요." % o.deadline
 	if GameState.line.is_running():
-		return "Injecting… advance cycles. Stop if heat spikes."
-	return "Start Inject, then advance cycles until %d good." % o.quantity
+		return "사출 중… 사이클을 진행하세요. 열이 오르면 정지하세요."
+	return "사출을 시작한 뒤 양품 %d까지 사이클을 진행하세요." % o.quantity
 
 func _pulse_machine() -> void:
 	var tw := create_tween()

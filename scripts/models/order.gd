@@ -27,7 +27,7 @@ static func from_dict(d: Dictionary) -> OrderData:
 	if tag is int:
 		o.margin_tag = tag
 	else:
-		o.margin_tag = MarginTag.SPECIAL if str(tag) == "special" else MarginTag.BULK
+		o.margin_tag = MarginTag.SPECIAL if str(tag) in ["special", "특수"] else MarginTag.BULK
 	# Default late penalty = 40% of reward (MVP sheet), not half.
 	var default_pen := int(round(float(o.reward) * 0.4))
 	o.penalty = int(d.get("penalty", default_pen))
@@ -53,7 +53,7 @@ func to_dict() -> Dictionary:
 	}
 
 func margin_tag_str() -> String:
-	return "special" if margin_tag == MarginTag.SPECIAL else "bulk"
+	return "특수" if margin_tag == MarginTag.SPECIAL else "대량"
 
 func is_near_deadline(current_cycle: int) -> bool:
 	## Near-deadline = remaining cycles <= 1
@@ -63,4 +63,4 @@ func remaining_cycles(current_cycle: int) -> int:
 	return deadline - current_cycle
 
 func progress_text() -> String:
-	return "%d / %d good" % [good_units_produced, quantity]
+	return "%d / %d 양품" % [good_units_produced, quantity]

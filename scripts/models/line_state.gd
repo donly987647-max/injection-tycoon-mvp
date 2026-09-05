@@ -36,11 +36,11 @@ func to_dict() -> Dictionary:
 
 func status_str() -> String:
 	match status:
-		Status.IDLE: return "Idle"
-		Status.SWAPPING: return "Swapping mold…"
-		Status.RUNNING: return "Injecting"
-		Status.COOLING: return "Cooling"
-		_: return "Unknown"
+		Status.IDLE: return "대기"
+		Status.SWAPPING: return "금형 교체 중…"
+		Status.RUNNING: return "사출 중"
+		Status.COOLING: return "냉각 중"
+		_: return "알 수 없음"
 
 func is_idle() -> bool:
 	return status == Status.IDLE or status == Status.COOLING

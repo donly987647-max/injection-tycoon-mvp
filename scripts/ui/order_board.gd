@@ -20,7 +20,7 @@ func refresh() -> void:
 		c.queue_free()
 	if GameState.board_orders.is_empty():
 		var empty := Label.new()
-		empty.text = "No orders. Advance a cycle."
+		empty.text = "주문 없음. 사이클을 진행하세요."
 		_list.add_child(empty)
 		return
 	for order in GameState.board_orders:
@@ -43,12 +43,12 @@ func _row(order: OrderData) -> Control:
 	box.add_child(v)
 	var title := Label.new()
 	var near := order.is_near_deadline(GameState.cycle)
-	var tag := order.margin_tag_str().to_upper()
-	title.text = "%s  [%s]%s" % [order.item, tag, "  ⚠ NEAR DEADLINE" if near else ""]
+	var tag := order.margin_tag_str()
+	title.text = "%s  [%s]%s" % [order.item, tag, "  ⚠ 기한 임박" if near else ""]
 	title.add_theme_font_size_override("font_size", 18)
 	v.add_child(title)
 	var meta := Label.new()
-	meta.text = "Qty %d   due C%d (%d left)   $%d   pen $%d" % [
+	meta.text = "수량 %d   기한 C%d (%d 남음)   $%d   페널티 $%d" % [
 		order.quantity, order.deadline, order.remaining_cycles(GameState.cycle),
 		order.reward, order.penalty,
 	]
@@ -59,7 +59,7 @@ func _row(order: OrderData) -> Control:
 	v.add_child(actions)
 	var locked := not GameState.can_interact()
 	var accept := Button.new()
-	accept.text = "Accept"
+	accept.text = "수주"
 	accept.custom_minimum_size = Vector2(0, 44)
 	accept.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	accept.disabled = locked
@@ -67,7 +67,7 @@ func _row(order: OrderData) -> Control:
 	accept.pressed.connect(func() -> void: _on_accept(oid))
 	actions.add_child(accept)
 	var reject := Button.new()
-	reject.text = "Reject"
+	reject.text = "거절"
 	reject.custom_minimum_size = Vector2(0, 44)
 	reject.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	reject.disabled = locked

@@ -259,6 +259,14 @@ const TABS = [
 const SAVE_KEY = 'injectionTycoonSave_v1';
 let state = null;
 let nextOrderId=1, nextStaffId=1, nextCandidateId=1;
+let daySalaryCharged=0, daySalaryUnpaid=false, dayDeliveryIncome=0, dayRepDelta=0;
+
+function resetDayAccums(){
+  daySalaryCharged=0;
+  daySalaryUnpaid=false;
+  dayDeliveryIncome=0;
+  dayRepDelta=0;
+}
 
 function getProduct(id){ return PRODUCTS.find(p=>p.id===id); }
 function unlockCost(idx){ return idx<INITIAL_UNLOCKED_SLOTS ? 0 : 4000 + (idx-INITIAL_UNLOCKED_SLOTS)*2500; }
@@ -416,8 +424,11 @@ function deliverOrder(id){
   if(have < order.qty){ toast('⚠️ 재고가 부족합니다.'); return; }
   state.inventory[order.productId] -= order.qty;
   state.cash += order.reward;
+  dayDeliveryIncome += order.reward;
   const product = getProduct(order.productId);
-  state.reputation = clamp(state.reputation + product.tier*2 + 1, 0, 100);
+  const repGain = product.tier*2 + 1;
+  state.reputation = clamp(state.reputation + repGain, 0, 100);
+  dayRepDelta += repGain;
   state.orders = state.orders.filter(o=>o.id!==id);
   toast(`납품 완료 · +${formatMoney(order.reward)}`);
   punchCash();
@@ -527,26 +538,49 @@ function produceAll(){
 }
 
 function newDay(){
+  const endedDay = state.day;
   state.day++;
   const totalSalary = state.staff.reduce((s,w)=>s+w.salary,0);
+  daySalaryCharged = totalSalary;
+  daySalaryUnpaid = false;
   if(totalSalary>0){
     if(state.cash >= totalSalary){ state.cash -= totalSalary; }
-    else{ state.cash = 0; state.reputation = clamp(state.reputation-3,0,100); toast('⚠️ 자금 부족으로 급여를 지급하지 못했습니다! 평판 하락'); }
+    else{
+      state.cash = 0;
+      state.reputation = clamp(state.reputation-3,0,100);
+      dayRepDelta -= 3;
+      daySalaryUnpaid = true;
+      toast('⚠️ 자금 부족으로 급여를 지급하지 못했습니다! 평판 하락');
+    }
   }
   const expired = state.orders.filter(o=>o.deadlineDay < state.day);
   if(expired.length){
     state.orders = state.orders.filter(o=>o.deadlineDay >= state.day);
-    state.reputation = clamp(state.reputation - 5*expired.length, 0, 100);
+    const repPenalty = 5*expired.length;
+    state.reputation = clamp(state.reputation - repPenalty, 0, 100);
+    dayRepDelta -= repPenalty;
     expired.forEach(o=>toast(`❌ ${o.client} 주문이 납기 초과로 취소되었습니다.`));
   }
   tryGenerateOrder();
   if(Math.random()<0.35) tryGenerateOrder();
   saveGame();
+
+  const summary = {
+    endedDay,
+    salaryCharged: daySalaryCharged,
+    salaryUnpaid: daySalaryUnpaid,
+    deliveryIncome: dayDeliveryIncome,
+    repDelta: dayRepDelta,
+    cash: state.cash,
+  };
+  resetDayAccums();
+  showDaySummary(summary);
 }
 
 function simulate(){
   produceAll();
   state.tickInDay++;
+  if(state.tickInDay % 5 === 0) saveGame();
   let dayChanged = false;
   if(state.tickInDay >= DAY_TICKS){ state.tickInDay=0; newDay(); dayChanged = true; }
   if(dayChanged){ renderAll(); } else { renderTopbar(); renderOrders(); }
@@ -901,6 +935,21 @@ function showModal(html){
   document.getElementById('modalOverlay').classList.add('show');
 }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+function showDaySummary(s){
+  closeModal();
+  const unpaidTag = s.salaryUnpaid ? ' <span class="warn">미지급</span>' : '';
+  const repStr = (s.repDelta>0?'+':'') + Math.round(s.repDelta);
+  showModal(`
+    <h3>Day ${s.endedDay} 마감</h3>
+    <div class="card" style="margin-top:4px;">
+      <div class="small" style="margin-bottom:6px;">급여 −${formatMoney(s.salaryCharged)}${unpaidTag}</div>
+      <div class="small" style="margin-bottom:6px;">납품 +${formatMoney(s.deliveryIncome)}</div>
+      <div class="small" style="margin-bottom:6px;">평판 ${repStr}</div>
+      <div class="small">잔고 ${formatMoney(s.cash)}</div>
+    </div>
+    <button class="btn primary" style="min-height:44px;margin-top:12px;" onclick="closeModal()">확인</button>
+  `);
+}
 function openSlotModal(idx){
   const slot = state.slots[idx];
   if(!slot.unlocked){
@@ -986,6 +1035,7 @@ function init(){
   } else {
     buildInitialState();
   }
+  resetDayAccums();
   setupCanvas();
   buildTabsUI();
   document.getElementById('modalClose').addEventListener('click', closeModal);

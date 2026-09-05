@@ -584,6 +584,7 @@ function buyMachine(idx, typeId){
 function setSlotProduct(idx, pid){
   state.slots[idx].product = pid;
   state.slots[idx].progress = 0;
+  saveGame();
   renderManageModal(idx);
 }
 function assignStaffToSlot(idx, value){

@@ -553,7 +553,7 @@ theme_override_constants/margin_bottom = 8
 
 [node name="Label" type="Label" parent="Toast/Panel/Margin"]
 layout_mode = 2
-text = "toast"
+text = ""
 horizontal_alignment = 1
 autowrap_mode = 3
 

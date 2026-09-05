@@ -86,6 +86,12 @@ h2 button{font-size:10px;padding:5px 8px;}
 .reward{color:var(--green);font-weight:700;}
 .card.order.soon{border-color:var(--orange);}
 .card.order.warn{border-color:var(--red);}
+.deadline-tomorrow{color:var(--orange);font-weight:700;}
+.deadline-today{color:var(--red);font-weight:900;}
+.btn.deliver-urgent{background:var(--red);color:#fff;box-shadow:3px 3px 0 #000,0 0 0 2px var(--yellow);animation:deliverPulse 1s ease-in-out infinite;}
+@keyframes deliverPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.03);}}
+@keyframes cashPunch{0%{transform:scale(1);}35%{transform:scale(1.28);color:#fff;}100%{transform:scale(1);}}
+#statCash.punch{display:inline-block;animation:cashPunch .35s ease;}
 
 .btn{background:var(--panel-light);color:var(--text);border:2px solid var(--border);box-shadow:3px 3px 0 #000;
   padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;width:100%;margin-top:6px;}
@@ -316,8 +322,18 @@ function deliverOrder(id){
   const product = getProduct(order.productId);
   state.reputation = clamp(state.reputation + product.tier*2 + 1, 0, 100);
   state.orders = state.orders.filter(o=>o.id!==id);
-  toast(`✅ ${order.client} 납품 완료! ${formatMoney(order.reward)} 획득`);
+  toast(`납품 완료 · +${formatMoney(order.reward)}`);
+  punchCash();
   renderAll();
+}
+
+function punchCash(){
+  const el = document.getElementById('statCash');
+  if(!el) return;
+  el.classList.remove('punch');
+  void el.offsetWidth;
+  el.classList.add('punch');
+  setTimeout(()=>el.classList.remove('punch'), 400);
 }
 
 /* ===================== STAFF ===================== */
@@ -379,6 +395,7 @@ function reassignFromStaffTab(staffId, value){
 /* ===================== PRODUCTION ===================== */
 function produceAll(){
   const gBonus = speedBonus();
+  let unitsThisTick = 0;
   for(const slot of state.slots){
     if(!slot.machineType || !slot.product){ slot.blocked=false; continue; }
     const machine = MACHINES[slot.machineType];
@@ -387,7 +404,11 @@ function produceAll(){
     const autoFactor = staff? (1+staff.skill*0.18) : 0.55;
     const rate = (1/product.prodTime) * machine.speedMult * autoFactor * gBonus;
     const matNeed = product.matCost * rate;
-    if(state.material < matNeed){ slot.blocked = true; continue; }
+    if(state.material < matNeed){
+      if(!slot.blocked) toast('원료 부족');
+      slot.blocked = true;
+      continue;
+    }
     slot.blocked = false;
     state.material -= matNeed;
     slot.progress += rate;
@@ -395,8 +416,11 @@ function produceAll(){
       const units = Math.floor(slot.progress);
       slot.progress -= units;
       state.inventory[slot.product] = (state.inventory[slot.product]||0) + units;
+      unitsThisTick += units;
+      slot.flashUntil = Date.now() + 200;
     }
   }
+  if(unitsThisTick > 0) toast(`+${unitsThisTick}개`);
   state.material = clamp(state.material, 0, materialCap());
 }
 
@@ -525,12 +549,23 @@ function renderOrders(){
       const have = state.inventory[o.productId]||0;
       const canDeliver = have >= o.qty;
       const daysLeft = o.deadlineDay - state.day;
-      const urgency = daysLeft<=1 ? 'warn' : (daysLeft<=3 ? 'soon' : '');
+      let urgency = '';
+      let deadlineHtml;
+      if(daysLeft === 0){
+        urgency = 'warn';
+        deadlineHtml = '<div class="small"><strong class="deadline-today">오늘 마감</strong></div>';
+      } else if(daysLeft === 1){
+        urgency = 'soon';
+        deadlineHtml = '<div class="small"><span class="deadline-tomorrow">내일 마감</span></div>';
+      } else {
+        deadlineHtml = `<div class="muted small">납기: ${daysLeft}일 남음</div>`;
+      }
+      const btnClass = daysLeft === 0 ? 'btn primary deliver-urgent' : 'btn primary';
       return `<div class="card order ${urgency}">
         <div class="cardHead"><strong>${o.client}</strong><span class="reward">${formatMoney(o.reward)}</span></div>
         <div class="orderBody"><span>${product.emoji} ${product.name} × ${o.qty}</span><span class="muted small">보유 ${have}/${o.qty}</span></div>
-        <div class="muted small">납기: ${daysLeft>0 ? daysLeft+'일 남음' : '오늘 마감'}</div>
-        <button class="btn primary" ${canDeliver?'':'disabled'} onclick="deliverOrder(${o.id})">📦 납품하기</button>
+        ${deadlineHtml}
+        <button class="${btnClass}" ${canDeliver?'':'disabled'} onclick="deliverOrder(${o.id})">📦 납품하기</button>
       </div>`;
     }).join('');
   }
@@ -539,7 +574,8 @@ function renderOrders(){
     let badge = tabBtn.querySelector('.badge');
     if(state.orders.length){
       if(!badge){ badge=document.createElement('span'); badge.className='badge'; tabBtn.appendChild(badge); }
-      badge.textContent = state.orders.length;
+      const imminent = state.orders.filter(o => (o.deadlineDay - state.day) <= 1).length;
+      badge.textContent = imminent > 0 ? imminent : state.orders.length;
     } else if(badge){ badge.remove(); }
   }
 }
@@ -668,12 +704,22 @@ function drawFactory(){
 }
 function drawSlot(x,y,slot,idx){
   ctx.textAlign='center'; ctx.textBaseline='middle';
+  const flashing = !!(slot.flashUntil && Date.now() < slot.flashUntil);
+  if(flashing){
+    const cx = x + TILE/2, cy = y + TILE/2;
+    const scale = 1.08;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    ctx.translate(-cx, -cy);
+  }
   if(!slot.unlocked){
     ctx.fillStyle='#0a0b10'; ctx.fillRect(x,y,TILE,TILE);
     ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.strokeRect(x+1,y+1,TILE-2,TILE-2);
     ctx.font='22px sans-serif'; ctx.fillText('🔒', x+TILE/2, y+TILE/2-8);
     ctx.font="9px 'Press Start 2P'"; ctx.fillStyle='#8b93a8';
     ctx.fillText(formatShort(unlockCost(idx)), x+TILE/2, y+TILE-11);
+    if(flashing) ctx.restore();
     return;
   }
   if(!slot.machineType){
@@ -683,6 +729,7 @@ function drawSlot(x,y,slot,idx){
     ctx.setLineDash([]);
     ctx.font='26px sans-serif'; ctx.fillStyle='#f4c430';
     ctx.fillText('+', x+TILE/2, y+TILE/2-2);
+    if(flashing) ctx.restore();
     return;
   }
   const machine = MACHINES[slot.machineType];
@@ -714,6 +761,14 @@ function drawSlot(x,y,slot,idx){
   const barY = y+TILE-6;
   ctx.fillStyle='#000'; ctx.fillRect(x+4,barY,TILE-8,4);
   ctx.fillStyle='#f4c430'; ctx.fillRect(x+4,barY,(TILE-8)*clamp(slot.progress,0,1),4);
+  if(flashing){
+    ctx.fillStyle = 'rgba(255,245,160,0.45)';
+    ctx.fillRect(x, y, TILE, TILE);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x+1, y+1, TILE-2, TILE-2);
+    ctx.restore();
+  }
 }
 function loop(){ drawFactory(); requestAnimationFrame(loop); }
 

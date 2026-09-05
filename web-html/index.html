@@ -13,7 +13,7 @@
   --panel-light:#272e44;
   --border:#07080c;
   --yellow:#f4c430;
-  --orange:#e0973c;
+  --orange:#E0A83A;
   --blue:#5b8fd6;
   --purple:#a35fe0;
   --green:#6fcf5b;
@@ -135,6 +135,8 @@ select{background:var(--panel-light);color:var(--text);border:2px solid var(--bo
 .toast{background:#000;color:#fff;border:2px solid var(--yellow);padding:9px 14px;font-size:12px;
   opacity:0;transform:translateY(10px);transition:all .25s;max-width:100%;text-align:center;}
 .toast.show{opacity:1;transform:translateY(0);}
+.hint.onboarding{color:var(--yellow);font-weight:700;}
+@keyframes onboardPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
 </style>
 </head>
 <body>
@@ -159,7 +161,7 @@ select{background:var(--panel-light);color:var(--text);border:2px solid var(--bo
 
   <main id="content">
     <section id="tab-factory" class="tab-panel active">
-      <p class="hint">구역을 눌러 사출기를 설치하거나 관리하세요.</p>
+      <p class="hint" id="factoryHint">구역을 눌러 사출기를 설치하거나 관리하세요.</p>
       <div id="canvasWrap"><canvas id="factoryCanvas"></canvas></div>
       <div class="legend">
         <span><span class="dot" style="background:#6fcf5b"></span>가동중</span>
@@ -254,6 +256,7 @@ const TABS = [
 ];
 
 /* ===================== STATE ===================== */
+const SAVE_KEY = 'injectionTycoonSave_v1';
 let state = null;
 let nextOrderId=1, nextStaffId=1, nextCandidateId=1;
 
@@ -271,6 +274,7 @@ function formatMoney(n){ return '₩'+Math.round(n).toLocaleString('ko-KR'); }
 function formatShort(n){ if(n>=10000) return Math.round(n/1000)+'K'; if(n>=1000) return (n/1000).toFixed(1)+'K'; return String(Math.round(n)); }
 
 function buildInitialState(){
+  nextOrderId=1; nextStaffId=1; nextCandidateId=1;
   state = {
     cash: 25000,
     reputation: 50,
@@ -284,6 +288,7 @@ function buildInitialState(){
     inventory: {},
     unlockedProducts: ['cup','toy'],
     upgrades: {speed:0, materialDiscount:0, warehouse:0, orderSlots:0},
+    onboardingDone: false,
     activeTab: 'factory',
   };
   for(let i=0;i<ROWS*COLS;i++){
@@ -291,6 +296,98 @@ function buildInitialState(){
   }
   for(let i=0;i<3;i++) state.candidates.push(generateCandidate());
   state.orders.push(makeOrderObject());
+}
+
+/* ===================== SAVE / LOAD ===================== */
+function saveGame(){
+  if(!state) return;
+  try{
+    const payload = {
+      day: state.day,
+      tickInDay: state.tickInDay,
+      cash: state.cash,
+      reputation: state.reputation,
+      material: state.material,
+      slots: state.slots.map(s=>({
+        unlocked:!!s.unlocked,
+        machineType: s.machineType||null,
+        product: s.product||null,
+        progress: Number(s.progress)||0,
+        staffId: s.staffId==null?null:s.staffId,
+        blocked: !!s.blocked,
+      })),
+      staff: state.staff,
+      candidates: state.candidates,
+      orders: state.orders,
+      inventory: state.inventory,
+      unlockedProducts: state.unlockedProducts,
+      upgrades: state.upgrades,
+      onboardingDone: !!state.onboardingDone,
+      nextOrderId,
+      nextStaffId,
+      nextCandidateId,
+      saveVersion: 1,
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+  }catch(e){ /* quota / private mode */ }
+}
+
+function loadGame(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(!data || data.saveVersion!==1) return false;
+    if(typeof data.day!=='number' || typeof data.cash!=='number') return false;
+    if(typeof data.reputation!=='number' || typeof data.material!=='number') return false;
+    if(!Array.isArray(data.slots) || data.slots.length!==ROWS*COLS) return false;
+    if(!Array.isArray(data.staff) || !Array.isArray(data.candidates) || !Array.isArray(data.orders)) return false;
+    if(!data.inventory || typeof data.inventory!=='object') return false;
+    if(!Array.isArray(data.unlockedProducts) || !data.upgrades || typeof data.upgrades!=='object') return false;
+    if(typeof data.nextOrderId!=='number' || typeof data.nextStaffId!=='number' || typeof data.nextCandidateId!=='number') return false;
+
+    state = {
+      cash: data.cash,
+      reputation: data.reputation,
+      day: data.day,
+      tickInDay: typeof data.tickInDay==='number' ? data.tickInDay : 0,
+      material: data.material,
+      slots: data.slots.map(s=>({
+        unlocked:!!s.unlocked,
+        machineType: s.machineType||null,
+        product: s.product||null,
+        progress: Number(s.progress)||0,
+        staffId: s.staffId==null?null:s.staffId,
+        blocked: !!s.blocked,
+      })),
+      staff: data.staff,
+      candidates: data.candidates,
+      orders: data.orders,
+      inventory: data.inventory,
+      unlockedProducts: data.unlockedProducts.slice(),
+      upgrades: Object.assign({speed:0, materialDiscount:0, warehouse:0, orderSlots:0}, data.upgrades),
+      onboardingDone: !!data.onboardingDone,
+      activeTab: 'factory',
+    };
+    nextOrderId = data.nextOrderId;
+    nextStaffId = data.nextStaffId;
+    nextCandidateId = data.nextCandidateId;
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function updateFactoryHint(){
+  const hint = document.getElementById('factoryHint');
+  if(!hint || !state) return;
+  if(!state.onboardingDone){
+    hint.textContent = '구역을 눌러 사출기 1대 설치';
+    hint.classList.add('onboarding');
+  } else {
+    hint.textContent = '구역을 눌러 사출기를 설치하거나 관리하세요.';
+    hint.classList.remove('onboarding');
+  }
 }
 
 /* ===================== ORDERS ===================== */
@@ -324,6 +421,7 @@ function deliverOrder(id){
   state.orders = state.orders.filter(o=>o.id!==id);
   toast(`납품 완료 · +${formatMoney(order.reward)}`);
   punchCash();
+  saveGame();
   renderAll();
 }
 
@@ -352,6 +450,7 @@ function hireCandidate(id){
   state.candidates = state.candidates.filter(x=>x.id!==id);
   state.candidates.push(generateCandidate());
   toast(`🙋 ${c.name}님을 채용했습니다!`);
+  saveGame();
   renderAll();
 }
 function fireStaff(id){
@@ -360,6 +459,7 @@ function fireStaff(id){
   if(w.assignedSlot!==null && state.slots[w.assignedSlot]) state.slots[w.assignedSlot].staffId=null;
   state.staff = state.staff.filter(x=>x.id!==id);
   toast(`${w.name}님을 해고했습니다.`);
+  saveGame();
   renderAll();
 }
 function rerollCandidates(){
@@ -367,6 +467,7 @@ function rerollCandidates(){
   state.cash -= 500;
   state.candidates = [generateCandidate(),generateCandidate(),generateCandidate()];
   toast('채용 후보를 새로고침했습니다.');
+  saveGame();
   renderAll();
 }
 function setStaffAssignment(staffId, slotIdxOrNull){
@@ -389,6 +490,7 @@ function setStaffAssignment(staffId, slotIdxOrNull){
 function reassignFromStaffTab(staffId, value){
   const slotIdx = value===''? null : parseInt(value,10);
   setStaffAssignment(staffId, slotIdx);
+  saveGame();
   renderAll();
 }
 
@@ -439,6 +541,7 @@ function newDay(){
   }
   tryGenerateOrder();
   if(Math.random()<0.35) tryGenerateOrder();
+  saveGame();
 }
 
 function simulate(){
@@ -456,6 +559,7 @@ function unlockSlot(idx){
   state.cash -= cost;
   state.slots[idx].unlocked = true;
   toast('🔓 구역 잠금 해제!');
+  saveGame();
   renderAll();
   openSlotModal(idx);
 }
@@ -466,7 +570,14 @@ function buyMachine(idx, typeId){
   state.slots[idx].machineType = typeId;
   state.slots[idx].product = null;
   state.slots[idx].progress = 0;
-  toast(`🏭 ${m.name} 설치 완료!`);
+  const firstInstall = !state.onboardingDone;
+  if(firstInstall){
+    state.onboardingDone = true;
+    toast('설치 완료!');
+  } else {
+    toast(`🏭 ${m.name} 설치 완료!`);
+  }
+  saveGame();
   renderAll();
   renderManageModal(idx);
 }
@@ -481,6 +592,7 @@ function assignStaffToSlot(idx, value){
   } else {
     setStaffAssignment(parseInt(value,10), idx);
   }
+  saveGame();
   renderAll();
   renderManageModal(idx);
 }
@@ -495,6 +607,7 @@ function demolishSlot(idx){
   }
   state.slots[idx] = {unlocked:true, machineType:null, product:null, progress:0, staffId:null, blocked:false};
   toast(`🔨 철거 완료 (+${formatMoney(refund)})`);
+  saveGame();
   renderAll();
   closeModal();
 }
@@ -509,6 +622,7 @@ function buyUpgrade(key){
   state.cash -= cost;
   state.upgrades[key] = level+1;
   toast(`✅ ${def.name} Lv.${level+1} 달성!`);
+  saveGame();
   renderAll();
 }
 function unlockProduct(id){
@@ -517,6 +631,7 @@ function unlockProduct(id){
   state.cash -= p.unlockCost;
   state.unlockedProducts.push(id);
   toast(`🎉 ${p.name} 개발 완료!`);
+  saveGame();
   renderAll();
 }
 function buyMaterial(amount, cost){
@@ -524,6 +639,7 @@ function buyMaterial(amount, cost){
   state.cash -= cost;
   state.material = clamp(state.material+amount, 0, materialCap());
   toast(`🧪 원료 ${amount}개 구매 완료!`);
+  saveGame();
   renderAll();
 }
 
@@ -665,6 +781,7 @@ function renderAll(){
   renderStaff();
   renderRnd();
   renderMaterialShop();
+  updateFactoryHint();
 }
 
 /* ===================== FACTORY CANVAS ===================== */
@@ -724,11 +841,16 @@ function drawSlot(x,y,slot,idx){
   }
   if(!slot.machineType){
     ctx.fillStyle='#181c2a'; ctx.fillRect(x,y,TILE,TILE);
+    const pulseOn = state && !state.onboardingDone;
+    const pulse = pulseOn ? (0.4 + 0.6*(0.5+0.5*Math.sin(Date.now()/280))) : 1;
+    ctx.save();
+    ctx.globalAlpha = pulse;
     ctx.strokeStyle='#f4c430'; ctx.lineWidth=2; ctx.setLineDash([5,4]);
     ctx.strokeRect(x+3,y+3,TILE-6,TILE-6);
     ctx.setLineDash([]);
     ctx.font='26px sans-serif'; ctx.fillStyle='#f4c430';
     ctx.fillText('+', x+TILE/2, y+TILE/2-2);
+    ctx.restore();
     if(flashing) ctx.restore();
     return;
   }
@@ -852,16 +974,31 @@ function toast(msg){
 
 /* ===================== INIT ===================== */
 function init(){
-  buildInitialState();
+  let resetToast = false;
+  const hadSave = !!localStorage.getItem(SAVE_KEY);
+  if(hadSave){
+    if(!loadGame()){
+      buildInitialState();
+      resetToast = true;
+      try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+    }
+  } else {
+    buildInitialState();
+  }
   setupCanvas();
   buildTabsUI();
   document.getElementById('modalClose').addEventListener('click', closeModal);
   document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeModal(); });
   document.getElementById('rerollBtn').addEventListener('click', rerollCandidates);
+  window.addEventListener('beforeunload', saveGame);
   renderAll();
   requestAnimationFrame(loop);
   setInterval(simulate, 1000);
-  setTimeout(()=>toast('🏭 공장에 오신 것을 환영합니다! 빈 구역을 눌러 사출기를 설치하세요.'), 400);
+  if(resetToast){
+    setTimeout(()=>toast('저장 데이터 초기화'), 400);
+  } else if(!state.onboardingDone){
+    setTimeout(()=>toast('🏭 공장에 오신 것을 환영합니다! 빈 구역을 눌러 사출기를 설치하세요.'), 400);
+  }
 }
 init();
 </script>
